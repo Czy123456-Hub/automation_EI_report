@@ -2,8 +2,8 @@ name: Update El Nino Report
 
 on:
   schedule:
-    # Temporary schedule test: run every 5 minutes.
-    - cron: "*/5 * * * *"
+    # 08:15 Beijing time = 00:15 UTC
+    - cron: "15 0 * * *"
   workflow_dispatch:
 
 permissions:
