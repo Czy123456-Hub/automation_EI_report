@@ -1,0 +1,12 @@
+{
+  "name": "automation-ei-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily cloud-generated El Nino tracker HTML report.",
+  "scripts": {
+    "generate": "python3 run_el_nino_tracker.py"
+  },
+  "dependencies": {
+    "playwright": "1.60.0"
+  }
+}
