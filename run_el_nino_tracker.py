@@ -822,36 +822,42 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
             or find_metric(metrics, ["weekly", "niño"]),
             "date_label": "数据时间",
             "note": "",
+            "explanation": "衡量Niño 3.4海区周度海温距平。正值偏向厄尔尼诺，负值偏向拉尼娜。周度数据反映快，但不确定性较大，需结合持续性判断。",
         },
         {
             "title": "SOI 30天",
             "metric": find_metric(metrics, ["soi", "海平面"]) or find_metric(metrics, ["soi"]),
             "date_label": "数据时间",
             "note": "",
+            "explanation": "衡量海平面气压差。正值通常偏拉尼娜，负值通常偏向厄尔尼诺；与Niño 3.4 海温指标方向相反。",
         },
         {
             "title": "赤道太平洋 0-300m 次表层水温",
             "metric": find_metric(metrics, ["heatcentra"]) or find_metric(metrics, ["0-300m"]),
             "date_label": "数据时间",
             "note": "区域：160E-80W",
+            "explanation": "衡量赤道太平洋0-300m上层海洋温度距平。正值表示次表层暖水储备偏多，支持后续偏暖；负值表示冷水储备偏多，支持后续偏冷。",
         },
         {
             "title": "Niño 3.4 月度",
             "metric": find_metric(metrics, ["niño", "月度"]) or find_metric(metrics, ["nino", "月度"]),
             "date_label": "数据月份",
             "note": "",
+            "explanation": "衡量Niño 3.4 海区月度海温距平。正值偏向厄尔尼诺，负值偏向拉尼娜。相比周度数据更平滑，更适合观察趋势。",
         },
         {
             "title": "赤道 SOI",
             "metric": find_metric(metrics, ["equatorial", "soi"]) or find_metric(metrics, ["赤道", "soi"]),
             "date_label": "数据月份",
             "note": "",
+            "explanation": "衡量东太平洋与印尼附近赤道气压差。正值偏向拉尼娜，负值偏向厄尔尼诺；对比大气是否和海温信号相符。",
         },
         {
             "title": "IOD",
             "metric": find_metric(metrics, ["iod"]),
             "date_label": "数据时间",
             "note": "",
+            "explanation": "衡量印度洋东西部海温差。正值表示西印度洋偏暖，东印度洋偏冷；负值表示东印度洋偏暖，西印度洋偏冷。",
         },
     ]
 
@@ -936,6 +942,7 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
+.metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -971,12 +978,18 @@ def metric_card(item: dict) -> str:
         date_text = f"{item['date_label']}：{format_time_zh(metric.get('time'))}"
 
     note_html = f'<div class="metric-note">{escape(item["note"])}</div>' if item.get("note") else ""
+    explanation_html = (
+        f'<div class="metric-explanation">{escape(item["explanation"])}</div>'
+        if item.get("explanation")
+        else ""
+    )
     return f"""
     <article class="metric-card">
       <div class="metric-name">{escape(item["title"])}</div>
       <div class="metric-value">{escape(value_text)}</div>
       <div class="metric-date">{escape(date_text)}</div>
       {note_html}
+      {explanation_html}
     </article>
     """
 
@@ -1074,7 +1087,7 @@ def build_html(metrics: list[dict]) -> str:
     {warning_html}
 
     <div class="footer">
-      说明：本页由普通 Python 脚本生成，不依赖 Jupyter Notebook。图片的具体统计日期和预报有效期以图中标注为准。
+      说明：图片的具体统计日期和预报有效期以图中标注为准。
     </div>
   </main>
 </body>

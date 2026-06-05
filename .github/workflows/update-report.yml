@@ -2,8 +2,8 @@ name: Update El Nino Report
 
 on:
   schedule:
-    # 09:00 Beijing time = 01:00 UTC
-    - cron: "0 1 * * *"
+    # 16:00 Beijing time = 08:00 UTC
+    - cron: "0 8 * * *"
   workflow_dispatch:
 
 permissions:
