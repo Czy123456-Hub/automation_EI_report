@@ -14,6 +14,7 @@ from html import escape, unescape
 from pathlib import Path
 from urllib.parse import quote, urljoin
 import urllib.request
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(os.environ.get("EL_NINO_ROOT", Path(__file__).resolve().parent)).resolve()
@@ -30,6 +31,7 @@ BROWSER_CAPTURE_SCRIPT = ROOT / "capture_el_nino_assets.js"
 METRICS_PAYLOAD_JSON_PATH = ASSETS_DIR / "enso_metrics_for_html.json"
 METRICS_LIST_JSON_PATH = ASSETS_DIR / "enso_metrics_latest.json"
 METRICS_CSV_PATH = ASSETS_DIR / "enso_metrics_latest.csv"
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 HEADERS = {"User-Agent": "Ei-Nino-Dashboard/1.0"}
 BROWSER_HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -102,6 +104,14 @@ STATIC_BROWSER_ASSETS = [
 ]
 
 warnings: list[str] = []
+
+
+def now_beijing() -> datetime:
+    return datetime.now(BEIJING_TZ)
+
+
+def format_timestamp_beijing(timestamp: float, fmt: str = "%Y-%m-%d %H:%M") -> str:
+    return datetime.fromtimestamp(timestamp, BEIJING_TZ).strftime(fmt)
 
 
 def warn(message: str) -> None:
@@ -426,7 +436,7 @@ def save_metrics(results: list[dict]) -> list[dict]:
         )
 
     payload = {
-        "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "saved_at": now_beijing().strftime("%Y-%m-%d %H:%M:%S"),
         "count": len(metric_results),
         "metrics": metric_results,
     }
@@ -770,7 +780,7 @@ def make_placeholder_svg(title: str, subtitle: str) -> str:
 def file_mtime(path: Path | None) -> str:
     if not path or not path.exists():
         return "未找到文件"
-    return datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    return format_timestamp_beijing(path.stat().st_mtime)
 
 
 def format_value(metric: dict | None) -> str:
@@ -1030,8 +1040,8 @@ def country_section(section: dict) -> str:
 
 
 def build_html(metrics: list[dict]) -> str:
-    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
-    metrics_saved_at = datetime.fromtimestamp(METRICS_PAYLOAD_JSON_PATH.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    generated_at = now_beijing().strftime("%Y-%m-%d %H:%M")
+    metrics_saved_at = format_timestamp_beijing(METRICS_PAYLOAD_JSON_PATH.stat().st_mtime)
 
     metric_cards = "\n".join(metric_card(item) for item in metric_cards_data(metrics))
     country_sections = "\n".join(country_section(section) for section in country_weather())
@@ -1063,8 +1073,8 @@ def build_html(metrics: list[dict]) -> str:
       </div>
       <div class="hero-meta">
         <span class="pill">单文件 HTML</span>
-        <span>页面生成时间：{escape(generated_at)}</span>
-        <span>指标保存时间：{escape(metrics_saved_at)}</span>
+        <span>页面生成时间（北京时间）：{escape(generated_at)}</span>
+        <span>指标保存时间（北京时间）：{escape(metrics_saved_at)}</span>
       </div>
     </header>
 
