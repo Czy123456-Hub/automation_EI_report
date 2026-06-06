@@ -1,6 +1,6 @@
 Schedule probe ran successfully.
-Event: push
-Beijing time: 2026-06-06 11:04:22 CST
-UTC time: 2026-06-06 03:04:22 UTC
-Run ID: 27050824488
-Run URL: https://github.com/Czy123456-Hub/automation_EI_report/actions/runs/27050824488
+Event: workflow_dispatch
+Beijing time: 2026-06-06 12:24:38 CST
+UTC time: 2026-06-06 04:24:38 UTC
+Run ID: 27052488508
+Run URL: https://github.com/Czy123456-Hub/automation_EI_report/actions/runs/27052488508
