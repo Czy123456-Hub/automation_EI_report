@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   pages: write
+  id-token: write
 
 concurrency:
   group: update-el-nino-report
@@ -18,6 +19,9 @@ jobs:
   update-report:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Check out repository
@@ -60,20 +64,20 @@ jobs:
           git commit -m "Update El Nino tracker HTML - $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
 
-      - name: Request GitHub Pages build
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Prepare Pages artifact
         run: |
-          response_code=$(curl -L -sS -o /tmp/pages-build-response.json -w "%{http_code}" \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds")
+          rm -rf .site
+          mkdir -p .site
+          cp index.html .site/index.html
 
-          cat /tmp/pages-build-response.json
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
-          if [ "${response_code}" != "201" ]; then
-            echo "GitHub Pages build request failed with HTTP ${response_code}."
-            exit 1
-          fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
