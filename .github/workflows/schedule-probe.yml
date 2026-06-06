@@ -1,0 +1,49 @@
+name: Schedule Probe
+
+on:
+  schedule:
+    # Every 15 minutes, offset from busy boundary minutes.
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/schedule-probe.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: schedule-probe
+  cancel-in-progress: false
+
+jobs:
+  record-probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Record probe run
+        run: |
+          {
+            echo "Schedule probe ran successfully."
+            echo "Event: ${GITHUB_EVENT_NAME}"
+            echo "Beijing time: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S %Z')"
+            echo "UTC time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "Run ID: ${GITHUB_RUN_ID}"
+            echo "Run URL: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > schedule-probe.txt
+
+      - name: Commit probe result if changed
+        run: |
+          if [ -z "$(git status --porcelain schedule-probe.txt)" ]; then
+            echo "No schedule-probe.txt changes to publish."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add schedule-probe.txt
+          git commit -m "Record schedule probe - $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
