@@ -8,10 +8,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 concurrency:
   group: update-el-nino-report
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update-report:
@@ -21,6 +22,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -56,3 +59,21 @@ jobs:
           git add index.html
           git commit -m "Update El Nino tracker HTML - $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
+
+      - name: Request GitHub Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          response_code=$(curl -L -sS -o /tmp/pages-build-response.json -w "%{http_code}" \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds")
+
+          cat /tmp/pages-build-response.json
+
+          if [ "${response_code}" != "201" ]; then
+            echo "GitHub Pages build request failed with HTTP ${response_code}."
+            exit 1
+          fi
