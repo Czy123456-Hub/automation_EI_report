@@ -34,7 +34,8 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .section-title { display: flex; align-items: center; gap: 10px; margin: 32px 0 16px; }
 .section-title h2 { margin: 0; font-size: 23px; }
 .rule { height: 1px; flex: 1; background: linear-gradient(90deg, var(--border), rgba(215,238,248,0)); }
-.metrics-grid, .weather-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.metrics-grid, .weather-grid, .forecast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.forecast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .metric-card, .country-section, .weather-card, .footer {
   background: rgba(255,255,255,.94); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(18,115,156,.08);
 }
@@ -68,6 +69,7 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .weather-card { margin: 0; overflow: hidden; border-radius: 14px; }
 .weather-image-wrap { padding: 11px 11px 0; background: linear-gradient(180deg, #FFFFFF, #F4FCFF); }
 .weather-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF; }
+.forecast-grid .weather-card img { aspect-ratio: 16 / 9; }
 figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
@@ -79,7 +81,7 @@ figcaption { padding: 12px 14px 15px; }
   .hero, .country-header { flex-direction: column; align-items: flex-start; }
   .hero-meta { text-align: left; }
   .pill { justify-self: start; }
-  .metrics-grid, .weather-grid { grid-template-columns: 1fr; }
+  .metrics-grid, .weather-grid, .forecast-grid { grid-template-columns: 1fr; }
   .country-section { padding: 15px; }
 }
 </style>
@@ -93,10 +95,41 @@ figcaption { padding: 12px 14px 15px; }
       </div>
       <div class="hero-meta">
         <span class="pill">单文件 HTML</span>
-        <span>页面生成时间（北京时间）：2026-06-08 16:42</span>
+        <span>页面生成时间（北京时间）：2026-06-08 17:26</span>
         <span>指标保存时间（北京时间）：2026-06-08 16:41</span>
       </div>
     </header>
+
+    <div class="section-title">
+      <h2>厄尔尼诺指标预测</h2>
+      <span class="rule"></span>
+    </div>
+
+    <section class="forecast-grid">
+
+    <figure class="weather-card">
+      <div class="weather-image-wrap">
+        <img src="assets/nino34Mon.gif" alt="Nino3.4预测" loading="lazy" />
+      </div>
+      <figcaption>
+        <div class="image-title">Nino3.4预测</div>
+        <div class="image-period">来源：NOAA CPC CFSv2 Niño 3.4 月度预测图</div>
+        <div class="image-date">本地图片更新时间：2026-06-08 17:25</div>
+      </figcaption>
+    </figure>
+
+    <figure class="weather-card">
+      <div class="weather-image-wrap">
+        <img src="assets/noaa_cpc_enso_strength_probabilities.png" alt="厄尔尼诺强度概率预测" loading="lazy" />
+      </div>
+      <figcaption>
+        <div class="image-title">厄尔尼诺强度概率预测</div>
+        <div class="image-period">来源：NOAA CPC ENSO Strength Probabilities</div>
+        <div class="image-date">本地图片更新时间：2026-06-08 17:25</div>
+      </figcaption>
+    </figure>
+
+    </section>
 
     <div class="section-title">
       <h2>核心海气指标</h2>

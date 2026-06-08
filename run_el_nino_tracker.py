@@ -48,6 +48,10 @@ HEATCENTRA_REGION = "160E-80W"
 IOD_URL = f"https://www.bom.gov.au/clim_data/IDCK000072/iod_1.txt?{int(time.time())}="
 IOD_SUMMARY_URL = "https://www.bom.gov.au/climate/enso/"
 WEEKLY_NINO34_URL = "https://www.cpc.ncep.noaa.gov/data/indices/rel_wksst9120.txt"
+NINO34_FORECAST_IMAGE_URL = "https://www.cpc.ncep.noaa.gov/products/CFSv2/imagesInd3/nino34Mon.gif"
+ENSO_STRENGTH_PAGE_URL = "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/strengths/"
+NINO34_FORECAST_OUT = ASSETS_DIR / "nino34Mon.gif"
+ENSO_STRENGTH_PROB_OUT = ASSETS_DIR / "noaa_cpc_enso_strength_probabilities.png"
 
 CPC_30DAY_REGIONS = {
     "seasia": {
@@ -704,6 +708,35 @@ def download_mausam_sw_monsoon() -> None:
         warn(f"Mausam SW Monsoon 图片下载失败，保留已有图片：{exc}")
 
 
+def find_enso_strength_probabilities_url(page_url: str) -> str:
+    html_text = fetch_text(page_url, headers={**BROWSER_HEADERS, "Referer": page_url})
+
+    for attrs in iter_img_attrs(html_text):
+        src = attrs.get("src") or attrs.get("data-src") or attrs.get("data-lazy-src")
+        if not src:
+            continue
+        full_url = urljoin(page_url, src)
+        if "enso-strengths-probs-current" in full_url:
+            return full_url
+
+    raise ValueError("没有找到 ENSO Strength Probabilities 主图")
+
+
+def download_forecast_images() -> None:
+    try:
+        download_binary(NINO34_FORECAST_IMAGE_URL, NINO34_FORECAST_OUT)
+        print(f"Niño 3.4 预测图下载成功：{NINO34_FORECAST_OUT}")
+    except Exception as exc:
+        warn(f"Niño 3.4 预测图下载失败，保留已有图片：{exc}")
+
+    try:
+        image_url = find_enso_strength_probabilities_url(ENSO_STRENGTH_PAGE_URL)
+        download_binary(image_url, ENSO_STRENGTH_PROB_OUT, referer=ENSO_STRENGTH_PAGE_URL)
+        print(f"ENSO 强度概率预测图下载成功：{ENSO_STRENGTH_PROB_OUT}")
+    except Exception as exc:
+        warn(f"ENSO 强度概率预测图下载失败，保留已有图片：{exc}")
+
+
 def run_browser_capture() -> None:
     node_bin = os.environ.get("EL_NINO_NODE") or shutil.which("node")
     if not node_bin:
@@ -751,11 +784,19 @@ def image_file_to_data_uri(path: Path | None, title: str, subtitle: str) -> str:
     if not path or not path.exists():
         return make_placeholder_svg(title, subtitle)
 
-    mime_type, _ = mimetypes.guess_type(path.name)
+    content = path.read_bytes()
+    if content.startswith(b"\x89PNG"):
+        mime_type = "image/png"
+    elif content.startswith(b"\xff\xd8"):
+        mime_type = "image/jpeg"
+    elif content.startswith((b"GIF87a", b"GIF89a")):
+        mime_type = "image/gif"
+    else:
+        mime_type, _ = mimetypes.guess_type(path.name)
     if not mime_type:
         mime_type = "image/gif" if path.suffix.lower() == ".gif" else "image/png"
 
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    encoded = base64.b64encode(content).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
 
 
@@ -1372,7 +1413,8 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .section-title { display: flex; align-items: center; gap: 10px; margin: 32px 0 16px; }
 .section-title h2 { margin: 0; font-size: 23px; }
 .rule { height: 1px; flex: 1; background: linear-gradient(90deg, var(--border), rgba(215,238,248,0)); }
-.metrics-grid, .weather-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.metrics-grid, .weather-grid, .forecast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.forecast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .metric-card, .country-section, .weather-card, .footer {
   background: rgba(255,255,255,.94); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(18,115,156,.08);
 }
@@ -1406,6 +1448,7 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .weather-card { margin: 0; overflow: hidden; border-radius: 14px; }
 .weather-image-wrap { padding: 11px 11px 0; background: linear-gradient(180deg, #FFFFFF, #F4FCFF); }
 .weather-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF; }
+.forecast-grid .weather-card img { aspect-ratio: 16 / 9; }
 figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
@@ -1417,7 +1460,7 @@ figcaption { padding: 12px 14px 15px; }
   .hero, .country-header { flex-direction: column; align-items: flex-start; }
   .hero-meta { text-align: left; }
   .pill { justify-self: start; }
-  .metrics-grid, .weather-grid { grid-template-columns: 1fr; }
+  .metrics-grid, .weather-grid, .forecast-grid { grid-template-columns: 1fr; }
   .country-section { padding: 15px; }
 }
 """
@@ -1492,6 +1535,27 @@ def image_card(title: str, period: str, path: Path) -> str:
     """
 
 
+def forecast_images() -> list[tuple[str, str, Path]]:
+    return [
+        ("Nino3.4预测", "来源：NOAA CPC CFSv2 Niño 3.4 月度预测图", NINO34_FORECAST_OUT),
+        ("厄尔尼诺强度概率预测", "来源：NOAA CPC ENSO Strength Probabilities", ENSO_STRENGTH_PROB_OUT),
+    ]
+
+
+def forecast_section() -> str:
+    cards = "\n".join(image_card(title, period, path) for title, period, path in forecast_images())
+    return f"""
+    <div class="section-title">
+      <h2>厄尔尼诺指标预测</h2>
+      <span class="rule"></span>
+    </div>
+
+    <section class="forecast-grid">
+      {cards}
+    </section>
+    """
+
+
 def country_section(section: dict) -> str:
     cards = "\n".join(image_card(title, period, path) for title, period, path in section["images"])
     return f"""
@@ -1517,6 +1581,7 @@ def build_html(metrics: list[dict]) -> str:
     metric_items = metric_cards_data(metrics)
     metric_cards = "\n".join(metric_card(item) for item in metric_items)
     metric_summary = metric_summary_panel(metric_items)
+    forecast_html = forecast_section()
     country_sections = "\n".join(country_section(section) for section in country_weather())
 
     warning_html = ""
@@ -1550,6 +1615,8 @@ def build_html(metrics: list[dict]) -> str:
         <span>指标保存时间（北京时间）：{escape(metrics_saved_at)}</span>
       </div>
     </header>
+
+    {forecast_html}
 
     <div class="section-title">
       <h2>核心海气指标</h2>
@@ -1586,6 +1653,7 @@ def main() -> None:
 
     copy_seed_assets()
     metrics = collect_metrics()
+    download_forecast_images()
     download_cpc_images()
     download_mausam_sw_monsoon()
     run_browser_capture()
