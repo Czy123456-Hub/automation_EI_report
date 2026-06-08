@@ -833,30 +833,30 @@ def metric_value(metric: dict | None) -> float | None:
         return None
 
 
-def interpretation(text: str, tone: str, role: str) -> dict:
-    return {"text": text, "tone": tone, "role": role}
+def interpretation(text: str, tone: str, role: str, rank: int = 0) -> dict:
+    return {"text": text, "tone": tone, "role": role, "rank": rank}
 
 
 def classify_nino34(value: float | None) -> dict:
     if value is None:
         return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
     if value >= 2.0:
-        return interpretation("非常强厄尔尼诺倾向", "warm", "enso_warm")
+        return interpretation("非常强厄尔尼诺倾向", "warm", "enso_warm", 4)
     if value >= 1.5:
-        return interpretation("强厄尔尼诺倾向", "warm", "enso_warm")
+        return interpretation("强厄尔尼诺倾向", "warm", "enso_warm", 3)
     if value >= 1.0:
-        return interpretation("中等厄尔尼诺倾向", "warm", "enso_warm")
+        return interpretation("中等厄尔尼诺倾向", "warm", "enso_warm", 2)
     if value >= 0.5:
-        return interpretation("弱厄尔尼诺倾向", "warm", "enso_warm")
+        return interpretation("弱厄尔尼诺倾向", "warm", "enso_warm", 1)
     if value > -0.5:
         return interpretation("中性", "neutral", "neutral")
     if value > -1.0:
-        return interpretation("弱拉尼娜倾向", "cool", "enso_cool")
+        return interpretation("弱拉尼娜倾向", "cool", "enso_cool", 1)
     if value > -1.5:
-        return interpretation("中等拉尼娜倾向", "cool", "enso_cool")
+        return interpretation("中等拉尼娜倾向", "cool", "enso_cool", 2)
     if value > -2.0:
-        return interpretation("强拉尼娜倾向", "cool", "enso_cool")
-    return interpretation("非常强拉尼娜倾向", "cool", "enso_cool")
+        return interpretation("强拉尼娜倾向", "cool", "enso_cool", 3)
+    return interpretation("非常强拉尼娜倾向", "cool", "enso_cool", 4)
 
 
 def classify_soi(value: float | None, equatorial: bool = False) -> dict:
@@ -864,50 +864,50 @@ def classify_soi(value: float | None, equatorial: bool = False) -> dict:
         return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
     suffix = "赤道大气响应" if equatorial else "大气响应"
     if value <= -1.5:
-        return interpretation(f"较强厄尔尼诺型{suffix}", "warm", "enso_warm")
+        return interpretation(f"较强厄尔尼诺型{suffix}", "warm", "enso_warm", 3)
     if value <= -1.0:
-        return interpretation(f"明显厄尔尼诺型{suffix}", "warm", "enso_warm")
+        return interpretation(f"明显厄尔尼诺型{suffix}", "warm", "enso_warm", 2)
     if value <= -0.5:
-        return interpretation(f"偏厄尔尼诺型{suffix}", "warm", "enso_warm")
+        return interpretation(f"偏厄尔尼诺型{suffix}", "warm", "enso_warm", 1)
     if value < 0.5:
         return interpretation("中性", "neutral", "neutral")
     if value < 1.0:
-        return interpretation(f"偏拉尼娜型{suffix}", "cool", "enso_cool")
+        return interpretation(f"偏拉尼娜型{suffix}", "cool", "enso_cool", 1)
     if value < 1.5:
-        return interpretation(f"明显拉尼娜型{suffix}", "cool", "enso_cool")
-    return interpretation(f"较强拉尼娜型{suffix}", "cool", "enso_cool")
+        return interpretation(f"明显拉尼娜型{suffix}", "cool", "enso_cool", 2)
+    return interpretation(f"较强拉尼娜型{suffix}", "cool", "enso_cool", 3)
 
 
 def classify_heat_content(value: float | None) -> dict:
     if value is None:
         return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
     if value >= 2.0:
-        return interpretation("暖水储备很强", "warm", "enso_warm")
+        return interpretation("暖水储备很强", "warm", "enso_warm", 3)
     if value >= 1.0:
-        return interpretation("暖水储备明显偏多", "warm", "enso_warm")
+        return interpretation("暖水储备明显偏多", "warm", "enso_warm", 2)
     if value >= 0.5:
-        return interpretation("暖水储备偏多", "warm", "enso_warm")
+        return interpretation("暖水储备偏多", "warm", "enso_warm", 1)
     if value > -0.5:
         return interpretation("中性", "neutral", "neutral")
     if value > -1.0:
-        return interpretation("冷水储备偏多", "cool", "enso_cool")
+        return interpretation("冷水储备偏多", "cool", "enso_cool", 1)
     if value > -2.0:
-        return interpretation("冷水储备明显偏多", "cool", "enso_cool")
-    return interpretation("冷水储备很强", "cool", "enso_cool")
+        return interpretation("冷水储备明显偏多", "cool", "enso_cool", 2)
+    return interpretation("冷水储备很强", "cool", "enso_cool", 3)
 
 
 def classify_iod(value: float | None) -> dict:
     if value is None:
         return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
     if value >= 0.8:
-        return interpretation("较强正 IOD", "warm", "iod_positive")
+        return interpretation("较强正 IOD", "warm", "iod_positive", 2)
     if value >= 0.4:
-        return interpretation("正 IOD 倾向", "warm", "iod_positive")
+        return interpretation("正 IOD 倾向", "warm", "iod_positive", 1)
     if value > -0.4:
         return interpretation("中性", "neutral", "neutral")
     if value > -0.8:
-        return interpretation("负 IOD 倾向", "cool", "iod_negative")
-    return interpretation("较强负 IOD", "cool", "iod_negative")
+        return interpretation("负 IOD 倾向", "cool", "iod_negative", 1)
+    return interpretation("较强负 IOD", "cool", "iod_negative", 2)
 
 
 def classify_metric(kind: str, metric: dict | None) -> dict:
@@ -927,6 +927,267 @@ def classify_metric(kind: str, metric: dict | None) -> dict:
 
 def metric_interpretation(item: dict) -> dict:
     return classify_metric(str(item.get("kind", "")), item.get("metric"))
+
+
+def enso_direction(result: dict) -> str:
+    role = result.get("role")
+    if role == "enso_warm":
+        return "warm"
+    if role == "enso_cool":
+        return "cool"
+    return "neutral"
+
+
+def enso_label(direction: str) -> str:
+    if direction == "warm":
+        return "厄尔尼诺"
+    if direction == "cool":
+        return "拉尼娜"
+    return "中性"
+
+
+def subject_value_text(name: str, result: dict) -> str:
+    joiner = " 为" if re.search(r"[A-Za-z0-9]$", name) else "为"
+    return f"{name}{joiner}{result['text']}"
+
+
+def pair_interpretation_text(
+    first_name: str,
+    first_result: dict,
+    second_name: str,
+    second_result: dict,
+) -> str:
+    if first_result["text"] == second_result["text"]:
+        return f"{first_name}和{second_name}均为{first_result['text']}"
+    return (
+        f"{subject_value_text(first_name, first_result)}，"
+        f"{subject_value_text(second_name, second_result)}"
+    )
+
+
+def build_nino_state(weekly: dict, monthly: dict) -> dict:
+    weekly_direction = enso_direction(weekly)
+    monthly_direction = enso_direction(monthly)
+
+    if weekly_direction != "neutral" and monthly_direction != "neutral":
+        if weekly_direction != monthly_direction:
+            return {
+                "direction": "mixed",
+                "state": "Niño 3.4 周度与月度分歧",
+                "rank": 0,
+                "consistency": "mixed",
+                "detail": pair_interpretation_text("Niño 3.4 周度", weekly, "月度", monthly),
+            }
+        return {
+            "direction": monthly_direction,
+            "state": monthly["text"],
+            "rank": int(monthly.get("rank", 0)),
+            "consistency": "aligned",
+            "detail": pair_interpretation_text("Niño 3.4 周度", weekly, "月度", monthly),
+        }
+
+    if monthly_direction != "neutral":
+        return {
+            "direction": monthly_direction,
+            "state": monthly["text"],
+            "rank": int(monthly.get("rank", 0)),
+            "consistency": "partial",
+            "detail": pair_interpretation_text("Niño 3.4 周度", weekly, "月度", monthly),
+        }
+
+    if weekly_direction != "neutral":
+        return {
+            "direction": weekly_direction,
+            "state": f"短期{weekly['text']}",
+            "rank": int(weekly.get("rank", 0)),
+            "consistency": "partial",
+            "detail": pair_interpretation_text("Niño 3.4 周度", weekly, "月度", monthly),
+        }
+
+    return {
+        "direction": "neutral",
+        "state": "中性",
+        "rank": 0,
+        "consistency": "neutral",
+        "detail": pair_interpretation_text("Niño 3.4 周度", weekly, "月度", monthly),
+    }
+
+
+def component_alignment(direction: str, result: dict) -> str:
+    result_direction = enso_direction(result)
+    if direction not in {"warm", "cool"} or result_direction == "neutral":
+        return "neutral"
+    if result_direction == direction:
+        return "support"
+    return "conflict"
+
+
+def build_atmosphere_status(direction: str, soi: dict, eq_soi: dict) -> dict:
+    alignments = [
+        component_alignment(direction, soi),
+        component_alignment(direction, eq_soi),
+    ]
+    support = alignments.count("support")
+    conflict = alignments.count("conflict")
+    neutral = alignments.count("neutral")
+    detail = pair_interpretation_text("SOI 30天", soi, "赤道 SOI", eq_soi)
+
+    if direction not in {"warm", "cool"}:
+        text = "大气端不参与主状态定向"
+    elif support == 2:
+        text = f"大气端与{enso_label(direction)}方向一致"
+    elif support == 1 and neutral == 1:
+        text = f"大气端部分支持{enso_label(direction)}方向"
+    elif neutral == 2:
+        text = "大气端中性"
+    elif conflict == 1 and support == 1:
+        text = "大气端内部出现分歧"
+    elif conflict >= 1:
+        text = f"大气端与{enso_label(direction)}方向相反"
+    else:
+        text = "大气端信号不明确"
+
+    return {
+        "support": support,
+        "conflict": conflict,
+        "neutral": neutral,
+        "text": text,
+        "detail": detail,
+    }
+
+
+def build_heat_status(direction: str, heat: dict) -> dict:
+    alignment = component_alignment(direction, heat)
+    if direction not in {"warm", "cool"}:
+        text = "次表层海洋结构不参与主状态定向"
+    elif alignment == "support":
+        text = f"次表层海洋结构支持{enso_label(direction)}方向"
+    elif alignment == "conflict":
+        text = f"次表层海洋结构与{enso_label(direction)}方向相反"
+    else:
+        text = "次表层海洋结构中性"
+
+    return {
+        "alignment": alignment,
+        "support": 1 if alignment == "support" else 0,
+        "conflict": 1 if alignment == "conflict" else 0,
+        "text": text,
+        "detail": f"赤道太平洋 0-300m 热含量为{heat['text']}",
+    }
+
+
+def chain_strength_text(score: int) -> str:
+    if score <= 2:
+        return "偏弱"
+    if score == 3:
+        return "中等"
+    if score <= 5:
+        return "中等偏强"
+    if score == 6:
+        return "强"
+    return "很强"
+
+
+def build_chain_decision(interpretations: dict[str, dict]) -> dict:
+    weekly = interpretations.get("nino_weekly", interpretation("数据缺失", "neutral", "neutral"))
+    monthly = interpretations.get("nino_monthly", interpretation("数据缺失", "neutral", "neutral"))
+    soi = interpretations.get("soi", interpretation("数据缺失", "neutral", "neutral"))
+    eq_soi = interpretations.get("eq_soi", interpretation("数据缺失", "neutral", "neutral"))
+    heat = interpretations.get("heat", interpretation("数据缺失", "neutral", "neutral"))
+
+    nino = build_nino_state(weekly, monthly)
+    direction = nino["direction"]
+
+    if direction == "mixed":
+        return {
+            "main_state": nino["state"],
+            "chain": "Niño 3.4 海温分歧链条",
+            "strength": "分歧",
+            "basis": f"{nino['detail']}，周度与月度海温方向不一致，暂不判定完整 ENSO 链条。",
+        }
+
+    atmosphere = build_atmosphere_status(direction, soi, eq_soi)
+    heat_status = build_heat_status(direction, heat)
+
+    if direction == "neutral":
+        warm_aux = sum(
+            1
+            for item in (soi, eq_soi, heat)
+            if enso_direction(item) == "warm"
+        )
+        cool_aux = sum(
+            1
+            for item in (soi, eq_soi, heat)
+            if enso_direction(item) == "cool"
+        )
+        if warm_aux >= 2 and warm_aux > cool_aux:
+            chain = "偏暖背景信号（Niño 3.4 未触发）"
+        elif cool_aux >= 2 and cool_aux > warm_aux:
+            chain = "偏冷背景信号（Niño 3.4 未触发）"
+        else:
+            chain = "未触发明确 ENSO 链条"
+        return {
+            "main_state": "中性",
+            "chain": chain,
+            "strength": "无明确链条",
+            "basis": (
+                f"{nino['detail']}，Niño 3.4 尚未越过 ENSO 判定阈值；"
+                f"{atmosphere['detail']}；{heat_status['detail']}。"
+            ),
+        }
+
+    label = enso_label(direction)
+    conflict_count = atmosphere["conflict"] + heat_status["conflict"]
+    support_count = atmosphere["support"] + heat_status["support"]
+
+    if conflict_count >= 2:
+        chain = f"{label}分歧链条"
+        strength = "分歧"
+    else:
+        if nino["consistency"] == "aligned" and atmosphere["support"] > 0 and heat_status["support"]:
+            chain = f"{label}完整链条"
+        elif nino["consistency"] == "partial" and support_count >= 2:
+            chain = f"{label}部分链条"
+        elif atmosphere["support"] > 0 and heat_status["alignment"] == "neutral":
+            chain = f"{label}海气链条（次表层中性）"
+        elif atmosphere["neutral"] == 2 and heat_status["support"]:
+            chain = f"{label}海洋链条（大气响应不足）"
+        elif atmosphere["support"] > 0 and heat_status["conflict"]:
+            chain = f"{label}海气链条，但次表层分歧"
+        elif atmosphere["conflict"] > 0 and heat_status["support"]:
+            chain = f"{label}海洋链条，但大气分歧"
+        else:
+            chain = f"{label}海温单项链条"
+
+        score = int(nino.get("rank", 0))
+        score += 1 if nino["consistency"] == "aligned" else 0
+        score += atmosphere["support"]
+        score += heat_status["support"]
+        score -= atmosphere["conflict"]
+        score -= 2 * heat_status["conflict"]
+        if nino["consistency"] == "partial":
+            score -= 1
+        strength = chain_strength_text(score)
+
+    basis = (
+        f"{nino['detail']}；{atmosphere['detail']}，{atmosphere['text']}；"
+        f"{heat_status['detail']}，{heat_status['text']}。"
+        "链条强度只反映当前海温、大气和次表层海洋结构是否同向。"
+    )
+    return {
+        "main_state": nino["state"],
+        "chain": chain,
+        "strength": strength,
+        "basis": basis,
+    }
+
+
+def build_iod_note(iod: dict) -> str:
+    if iod.get("role") == "iod_negative":
+        return f"IOD 当前为{iod['text']}，单独提示印度季风偏弱和降雨不足风险。"
+    if iod.get("role") == "iod_positive":
+        return f"IOD 当前为{iod['text']}，往往有利于印度季风降雨。"
+    return f"IOD 当前为{iod['text']}，对印度季风的异常指示暂不明显。"
 
 
 def metric_cards_data(metrics: list[dict]) -> list[dict]:
@@ -977,12 +1238,12 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
             "explanation": (
                 "反映赤道太平洋上层 300 米海洋平均温度相对常年的偏离程度，主要用于判断赤道太平洋海表偏暖或偏冷背后是否有海洋内部热量支撑。\n"
                 "-0.5°C 到 +0.5°C 为中性；\n"
-                "+0.5°C 到 +1.0°C 表示暖水储备偏多，后续 Niño 3.4 海温偏暖可能维持；\n"
-                "+1.0°C 到 +2.0°C 表示暖水储备明显偏多，后续厄尔尼诺倾向可能增强；\n"
-                "高于 +2.0°C 表示暖水储备很强，后续厄尔尼诺发展或维持的概率较高；\n"
-                "-0.5°C 到 -1.0°C 表示冷水储备偏多，后续 Niño 3.4 海温可能转弱或偏冷；\n"
-                "-1.0°C 到 -2.0°C 表示冷水储备明显偏多，后续拉尼娜倾向可能增强；\n"
-                "低于 -2.0°C 表示冷水储备很强，后续拉尼娜发展或维持的概率较高。"
+                "+0.5°C 到 +1.0°C 表示暖水储备偏多，当前海表偏暖有一定内部支撑；\n"
+                "+1.0°C 到 +2.0°C 表示暖水储备明显偏多，当前厄尔尼诺倾向的内部支撑较强；\n"
+                "高于 +2.0°C 表示暖水储备很强，当前厄尔尼诺链条的海洋内部结构较强；\n"
+                "-0.5°C 到 -1.0°C 表示冷水储备偏多，当前海表偏冷有一定内部支撑；\n"
+                "-1.0°C 到 -2.0°C 表示冷水储备明显偏多，当前拉尼娜倾向的内部支撑较强；\n"
+                "低于 -2.0°C 表示冷水储备很强，当前拉尼娜链条的海洋内部结构较强。"
             ),
         },
         {
@@ -1116,16 +1377,15 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
   background: rgba(255,255,255,.94); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(18,115,156,.08);
 }
 .metric-card { min-height: 154px; padding: 22px 20px; border-radius: 16px; text-align: center; border-top: 5px solid var(--accent); }
-.metric-name { min-height: 38px; display: grid; place-items: center; color: var(--muted); font-weight: 800; font-size: 16px; }
-.metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
-.metric-interpretation {
-  display: inline-flex; align-items: center; justify-content: center; max-width: 100%;
-  margin: -4px auto 12px; padding: 7px 11px; border-radius: 999px;
-  font-size: 12px; line-height: 1.35; font-weight: 800; border: 1px solid transparent;
+.metric-name {
+  min-height: 38px; display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 2px; color: var(--muted); font-weight: 800; font-size: 16px;
 }
-.metric-interpretation.warm { color: #9A5A17; background: #FFF4E6; border-color: #F4C98B; }
-.metric-interpretation.cool { color: #166D8F; background: #E8F7FF; border-color: #A9DDF1; }
-.metric-interpretation.neutral { color: #587482; background: #F1F8FB; border-color: #D7EEF8; }
+.metric-status { color: #587482; font-size: 13px; font-weight: 850; }
+.metric-status.warm { color: #9A5A17; }
+.metric-status.cool { color: #166D8F; }
+.metric-status.neutral { color: #587482; }
+.metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
 .metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; white-space: pre-line; }
@@ -1135,7 +1395,9 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
   border-left: 5px solid var(--accent); box-shadow: 0 12px 28px rgba(18,115,156,.07);
 }
 .summary-label { color: var(--primary); font-size: 15px; line-height: 1.4; font-weight: 850; }
-.summary-text { margin-top: 8px; color: #4F7081; font-size: 13px; line-height: 1.7; }
+.summary-lines { margin-top: 9px; display: grid; gap: 5px; color: #4F7081; font-size: 13px; line-height: 1.65; }
+.summary-line strong { color: var(--primary); font-weight: 850; }
+.summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -1179,9 +1441,10 @@ def metric_card(item: dict) -> str:
     )
     return f"""
     <article class="metric-card">
-      <div class="metric-name">{escape(item["title"])}</div>
+      <div class="metric-name">
+        <span>{escape(item["title"])}</span><span class="metric-status {escape(result["tone"])}">（{escape(result["text"])}）</span>
+      </div>
       <div class="metric-value">{escape(value_text)}</div>
-      <div class="metric-interpretation {escape(result["tone"])}">当前解读：{escape(result["text"])}</div>
       <div class="metric-date">{escape(date_text)}</div>
       {note_html}
       {explanation_html}
@@ -1194,48 +1457,20 @@ def metric_summary_panel(cards: list[dict]) -> str:
         str(item.get("kind", "")): metric_interpretation(item)
         for item in cards
     }
-    enso_roles = [
-        item.get("role")
-        for kind, item in interpretations.items()
-        if kind != "iod"
-    ]
-    warm_count = enso_roles.count("enso_warm")
-    cool_count = enso_roles.count("enso_cool")
-
-    if warm_count >= 3 and warm_count > cool_count:
-        lead = "目前核心 ENSO 指标整体偏向厄尔尼诺信号。"
-        alignment = "海温端和大气端信号较一致"
-    elif cool_count >= 3 and cool_count > warm_count:
-        lead = "目前核心 ENSO 指标整体偏向拉尼娜信号。"
-        alignment = "海温端和大气端信号较一致"
-    else:
-        lead = "目前核心 ENSO 指标整体仍偏中性或信号存在分歧。"
-        alignment = "海温端和大气端信号仍需继续观察"
-
-    weekly = interpretations.get("nino_weekly", interpretation("数据缺失", "neutral", "neutral"))
-    monthly = interpretations.get("nino_monthly", interpretation("数据缺失", "neutral", "neutral"))
-    soi = interpretations.get("soi", interpretation("数据缺失", "neutral", "neutral"))
-    eq_soi = interpretations.get("eq_soi", interpretation("数据缺失", "neutral", "neutral"))
-    heat = interpretations.get("heat", interpretation("数据缺失", "neutral", "neutral"))
     iod = interpretations.get("iod", interpretation("数据缺失", "neutral", "neutral"))
-
-    if iod.get("role") == "iod_negative":
-        iod_note = "可能增加印度季风偏弱和降雨不足的风险"
-    elif iod.get("role") == "iod_positive":
-        iod_note = "往往有利于印度季风降雨"
-    else:
-        iod_note = "对印度季风的异常指示暂不明显"
-
-    summary = (
-        f"{lead}Niño 3.4 周度和月度分别为{weekly['text']}、{monthly['text']}，"
-        f"SOI 30天和赤道 SOI 分别为{soi['text']}、{eq_soi['text']}，{alignment}。"
-        f"赤道太平洋次表层热含量显示{heat['text']}；IOD 当前为{iod['text']}，{iod_note}。"
-    )
+    decision = build_chain_decision(interpretations)
+    iod_note = build_iod_note(iod)
 
     return f"""
     <section class="summary-panel">
-      <div class="summary-label">综合结论</div>
-      <div class="summary-text">{escape(summary)}</div>
+      <div class="summary-label">ENSO 链条判定</div>
+      <div class="summary-lines">
+        <div class="summary-line"><strong>当前 ENSO 主状态：</strong>{escape(decision["main_state"])}</div>
+        <div class="summary-line"><strong>触发链条：</strong>{escape(decision["chain"])}</div>
+        <div class="summary-line"><strong>链条强度：</strong>{escape(decision["strength"])}</div>
+      </div>
+      <div class="summary-text">判断依据：{escape(decision["basis"])}</div>
+      <div class="summary-text">{escape(iod_note)}IOD 不参与 ENSO 链条评分。</div>
     </section>
     """
 

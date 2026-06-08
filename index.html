@@ -39,16 +39,15 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
   background: rgba(255,255,255,.94); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(18,115,156,.08);
 }
 .metric-card { min-height: 154px; padding: 22px 20px; border-radius: 16px; text-align: center; border-top: 5px solid var(--accent); }
-.metric-name { min-height: 38px; display: grid; place-items: center; color: var(--muted); font-weight: 800; font-size: 16px; }
-.metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
-.metric-interpretation {
-  display: inline-flex; align-items: center; justify-content: center; max-width: 100%;
-  margin: -4px auto 12px; padding: 7px 11px; border-radius: 999px;
-  font-size: 12px; line-height: 1.35; font-weight: 800; border: 1px solid transparent;
+.metric-name {
+  min-height: 38px; display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 2px; color: var(--muted); font-weight: 800; font-size: 16px;
 }
-.metric-interpretation.warm { color: #9A5A17; background: #FFF4E6; border-color: #F4C98B; }
-.metric-interpretation.cool { color: #166D8F; background: #E8F7FF; border-color: #A9DDF1; }
-.metric-interpretation.neutral { color: #587482; background: #F1F8FB; border-color: #D7EEF8; }
+.metric-status { color: #587482; font-size: 13px; font-weight: 850; }
+.metric-status.warm { color: #9A5A17; }
+.metric-status.cool { color: #166D8F; }
+.metric-status.neutral { color: #587482; }
+.metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
 .metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; white-space: pre-line; }
@@ -58,7 +57,9 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
   border-left: 5px solid var(--accent); box-shadow: 0 12px 28px rgba(18,115,156,.07);
 }
 .summary-label { color: var(--primary); font-size: 15px; line-height: 1.4; font-weight: 850; }
-.summary-text { margin-top: 8px; color: #4F7081; font-size: 13px; line-height: 1.7; }
+.summary-lines { margin-top: 9px; display: grid; gap: 5px; color: #4F7081; font-size: 13px; line-height: 1.65; }
+.summary-line strong { color: var(--primary); font-weight: 850; }
+.summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -92,7 +93,7 @@ figcaption { padding: 12px 14px 15px; }
       </div>
       <div class="hero-meta">
         <span class="pill">单文件 HTML</span>
-        <span>页面生成时间（北京时间）：2026-06-08 15:10</span>
+        <span>页面生成时间（北京时间）：2026-06-08 16:21</span>
         <span>指标保存时间（北京时间）：2026-06-08 15:09</span>
       </div>
     </header>
@@ -105,9 +106,10 @@ figcaption { padding: 12px 14px 15px; }
     <section class="metrics-grid">
       
     <article class="metric-card">
-      <div class="metric-name">Niño 3.4 周度</div>
+      <div class="metric-name">
+        <span>Niño 3.4 周度</span><span class="metric-status warm">（弱厄尔尼诺倾向）</span>
+      </div>
       <div class="metric-value">+0.70 °C</div>
-      <div class="metric-interpretation warm">当前解读：弱厄尔尼诺倾向</div>
       <div class="metric-date">数据时间：2026年6月3日</div>
       
       <div class="metric-explanation">反映赤道中东太平洋 Niño 3.4 区域的一周平均海表温度距平，主要用于观察厄尔尼诺/拉尼娜状态的短期变化和转折信号。
@@ -124,9 +126,10 @@ figcaption { padding: 12px 14px 15px; }
     
 
     <article class="metric-card">
-      <div class="metric-name">SOI 30天</div>
+      <div class="metric-name">
+        <span>SOI 30天</span><span class="metric-status warm">（较强厄尔尼诺型大气响应）</span>
+      </div>
       <div class="metric-value">-1.50</div>
-      <div class="metric-interpretation warm">当前解读：较强厄尔尼诺型大气响应</div>
       <div class="metric-date">数据时间：2026年5月</div>
       
       <div class="metric-explanation">反映 Tahiti 与 Darwin 两地海平面气压差的标准化异常，主要用于判断大气端是否和海温变化状态一致。
@@ -141,26 +144,28 @@ figcaption { padding: 12px 14px 15px; }
     
 
     <article class="metric-card">
-      <div class="metric-name">赤道太平洋 0-300m 次表层水温</div>
+      <div class="metric-name">
+        <span>赤道太平洋 0-300m 次表层水温</span><span class="metric-status warm">（暖水储备明显偏多）</span>
+      </div>
       <div class="metric-value">+1.96 °C</div>
-      <div class="metric-interpretation warm">当前解读：暖水储备明显偏多</div>
       <div class="metric-date">数据时间：2026年5月</div>
       <div class="metric-note">区域：160E-80W</div>
       <div class="metric-explanation">反映赤道太平洋上层 300 米海洋平均温度相对常年的偏离程度，主要用于判断赤道太平洋海表偏暖或偏冷背后是否有海洋内部热量支撑。
 -0.5°C 到 +0.5°C 为中性；
-+0.5°C 到 +1.0°C 表示暖水储备偏多，后续 Niño 3.4 海温偏暖可能维持；
-+1.0°C 到 +2.0°C 表示暖水储备明显偏多，后续厄尔尼诺倾向可能增强；
-高于 +2.0°C 表示暖水储备很强，后续厄尔尼诺发展或维持的概率较高；
--0.5°C 到 -1.0°C 表示冷水储备偏多，后续 Niño 3.4 海温可能转弱或偏冷；
--1.0°C 到 -2.0°C 表示冷水储备明显偏多，后续拉尼娜倾向可能增强；
-低于 -2.0°C 表示冷水储备很强，后续拉尼娜发展或维持的概率较高。</div>
++0.5°C 到 +1.0°C 表示暖水储备偏多，当前海表偏暖有一定内部支撑；
++1.0°C 到 +2.0°C 表示暖水储备明显偏多，当前厄尔尼诺倾向的内部支撑较强；
+高于 +2.0°C 表示暖水储备很强，当前厄尔尼诺链条的海洋内部结构较强；
+-0.5°C 到 -1.0°C 表示冷水储备偏多，当前海表偏冷有一定内部支撑；
+-1.0°C 到 -2.0°C 表示冷水储备明显偏多，当前拉尼娜倾向的内部支撑较强；
+低于 -2.0°C 表示冷水储备很强，当前拉尼娜链条的海洋内部结构较强。</div>
     </article>
     
 
     <article class="metric-card">
-      <div class="metric-name">Niño 3.4 月度</div>
+      <div class="metric-name">
+        <span>Niño 3.4 月度</span><span class="metric-status warm">（弱厄尔尼诺倾向）</span>
+      </div>
       <div class="metric-value">+0.82 °C</div>
-      <div class="metric-interpretation warm">当前解读：弱厄尔尼诺倾向</div>
       <div class="metric-date">数据月份：2026年5月</div>
       
       <div class="metric-explanation">反映赤道中东太平洋 Niño 3.4 区域的月平均海表温度距平，主要用于判断厄尔尼诺/拉尼娜状态的月度背景强弱。
@@ -177,9 +182,10 @@ figcaption { padding: 12px 14px 15px; }
     
 
     <article class="metric-card">
-      <div class="metric-name">赤道 SOI</div>
+      <div class="metric-name">
+        <span>赤道 SOI</span><span class="metric-status warm">（明显厄尔尼诺型赤道大气响应）</span>
+      </div>
       <div class="metric-value">-1.00</div>
-      <div class="metric-interpretation warm">当前解读：明显厄尔尼诺型赤道大气响应</div>
       <div class="metric-date">数据月份：2026年5月</div>
       
       <div class="metric-explanation">反映赤道太平洋附近海平面气压差的标准化异常，主要用于判断赤道太平洋的大气环流是否和海温变化状态一致。
@@ -194,9 +200,10 @@ figcaption { padding: 12px 14px 15px; }
     
 
     <article class="metric-card">
-      <div class="metric-name">IOD</div>
+      <div class="metric-name">
+        <span>IOD</span><span class="metric-status cool">（负 IOD 倾向）</span>
+      </div>
       <div class="metric-value">-0.43 °C</div>
-      <div class="metric-interpretation cool">当前解读：负 IOD 倾向</div>
       <div class="metric-date">数据时间：2026年5月31日</div>
       
       <div class="metric-explanation">反映热带印度洋西部和东部海温距平的差值，主要用于判断印度洋海温分布是否异常。
@@ -212,8 +219,14 @@ figcaption { padding: 12px 14px 15px; }
 
 
     <section class="summary-panel">
-      <div class="summary-label">综合结论</div>
-      <div class="summary-text">目前核心 ENSO 指标整体偏向厄尔尼诺信号。Niño 3.4 周度和月度分别为弱厄尔尼诺倾向、弱厄尔尼诺倾向，SOI 30天和赤道 SOI 分别为较强厄尔尼诺型大气响应、明显厄尔尼诺型赤道大气响应，海温端和大气端信号较一致。赤道太平洋次表层热含量显示暖水储备明显偏多；IOD 当前为负 IOD 倾向，可能增加印度季风偏弱和降雨不足的风险。</div>
+      <div class="summary-label">ENSO 链条判定</div>
+      <div class="summary-lines">
+        <div class="summary-line"><strong>当前 ENSO 主状态：</strong>弱厄尔尼诺倾向</div>
+        <div class="summary-line"><strong>触发链条：</strong>厄尔尼诺完整链条</div>
+        <div class="summary-line"><strong>链条强度：</strong>中等偏强</div>
+      </div>
+      <div class="summary-text">判断依据：Niño 3.4 周度和月度均为弱厄尔尼诺倾向；SOI 30天为较强厄尔尼诺型大气响应，赤道 SOI 为明显厄尔尼诺型赤道大气响应，大气端与厄尔尼诺方向一致；赤道太平洋 0-300m 热含量为暖水储备明显偏多，次表层海洋结构支持厄尔尼诺方向。链条强度只反映当前海温、大气和次表层海洋结构是否同向。</div>
+      <div class="summary-text">IOD 当前为负 IOD 倾向，单独提示印度季风偏弱和降雨不足风险。IOD 不参与 ENSO 链条评分。</div>
     </section>
 
     <div class="section-title">
