@@ -945,6 +945,74 @@ def el_nino_probabilities_text(row: dict) -> str:
     return "，".join(parts)
 
 
+def build_enso_strength_market_view(
+    peak_row: dict,
+    peak_key: str,
+    peak_total: int,
+    peak_strong_plus: int,
+    decline_row: dict | None,
+) -> dict:
+    peak_season = season_display(peak_row)
+    dominant_label = ENSO_STRENGTH_PROB_LABELS.get(peak_key, "厄尔尼诺")
+
+    if decline_row is None:
+        trend_note = "表内尚未出现明确回落，说明 NOAA 当前预测窗口内天气风险溢价不宜过早下修。"
+    else:
+        decline_season = season_display(decline_row["row"])
+        trend_note = f"{decline_season}开始回落后，需要观察厄尔尼诺利多是否边际降温。"
+
+    if peak_total < 50:
+        return {
+            "conclusion": (
+                f"{peak_season}虽是表内厄尔尼诺评分最高季度，但总厄尔尼诺概率仅 {peak_total}%，"
+                "暂未形成明确主导信号。"
+            ),
+            "focus": "印度、泰国和巴西的实际降雨、土壤水分、压榨进度，而不是单独依赖 ENSO 预测。",
+            "sugar_impact": "糖价影响偏中性观望；ENSO 对糖价的天气风险溢价暂不构成强驱动。",
+        }
+
+    if peak_strong_plus >= 50:
+        return {
+            "conclusion": (
+                f"{peak_season}厄尔尼诺强度风险较高，强及以上概率 {peak_strong_plus}%，"
+                f"主导分档为{dominant_label}。"
+            ),
+            "focus": (
+                "印度、泰国季风降雨是否偏弱、甘蔗产区土壤水分和单产预期；"
+                f"同时跟踪巴西中南部降雨对压榨节奏的扰动。{trend_note}"
+            ),
+            "sugar_impact": (
+                "偏利多糖价；逻辑是亚洲甘蔗产区偏干和单产下修风险上升，"
+                "容易抬升糖价天气风险溢价。"
+            ),
+        }
+
+    if peak_total >= 70:
+        return {
+            "conclusion": (
+                f"{peak_season}厄尔尼诺概率占优，总厄尔尼诺概率 {peak_total}%，"
+                f"但强及以上概率为 {peak_strong_plus}%，强度还不是最极端情形。"
+            ),
+            "focus": (
+                "弱/中等厄尔尼诺是否继续升级，以及印度、泰国季风降雨是否出现连续偏少。"
+                f"{trend_note}"
+            ),
+            "sugar_impact": "中性偏利多糖价；天气风险溢价存在，但需要产区实际降雨验证。",
+        }
+
+    return {
+        "conclusion": (
+            f"{peak_season}存在厄尔尼诺倾向，总厄尔尼诺概率 {peak_total}%，"
+            f"主导分档为{dominant_label}。"
+        ),
+        "focus": (
+            "厄尔尼诺概率是否继续抬升到中等及以上，同时观察印度、泰国降雨是否低于常年。"
+            f"{trend_note}"
+        ),
+        "sugar_impact": "轻微利多糖价，仍需观察；如果后续概率升级或主产区降雨转差，利多会增强。",
+    }
+
+
 def analyze_enso_strength_forecast(payload: dict, current: datetime | None = None) -> dict:
     rows = list(payload.get("rows") or [])
     if not rows:
@@ -990,6 +1058,13 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
     short_neutral = probability_value(short_row, "neutral")
     dominant_short_label = ENSO_STRENGTH_PROB_LABELS[short_key]
     dominant_peak_label = ENSO_STRENGTH_PROB_LABELS[peak_key]
+    market_view = build_enso_strength_market_view(
+        peak_row,
+        peak_key,
+        peak_total,
+        peak_strong_plus,
+        decline_row,
+    )
 
     if decline_row is None:
         decline_text = "表内尚未出现明确回落"
@@ -1003,7 +1078,7 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
     return {
         "issued": payload.get("issued", "未标注"),
         "peak_line": (
-            f"最强预测季度：{season_display(peak_row)}，"
+            f"厄尔尼诺最强预测季度：{season_display(peak_row)}，"
             f"按 RONI 强度概率评分为表内最高"
         ),
         "peak_probability_line": (
@@ -1016,6 +1091,9 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
             f"中性 {short_neutral}%）"
         ),
         "decline_line": f"回落起点：{decline_text}",
+        "conclusion_line": f"预测结论：{market_view['conclusion']}",
+        "focus_line": f"重点关注：{market_view['focus']}",
+        "sugar_impact_line": f"糖价影响：{market_view['sugar_impact']}",
         "method_text": (
             "表格来源：NOAA CPC ENSO Strength Probabilities"
             f"（Issued {payload.get('issued', '未标注')}）。"
@@ -1961,6 +2039,9 @@ def forecast_summary_panel() -> str:
         analysis["peak_probability_line"],
         analysis["short_line"],
         analysis["decline_line"],
+        analysis["conclusion_line"],
+        analysis["focus_line"],
+        analysis["sugar_impact_line"],
     ]
     line_html = "\n".join(
         f'        <div class="summary-line"><strong>{escape(line.split("：", 1)[0])}：</strong>{escape(line.split("：", 1)[1])}</div>'
