@@ -52,6 +52,56 @@ NINO34_FORECAST_IMAGE_URL = "https://www.cpc.ncep.noaa.gov/products/CFSv2/images
 ENSO_STRENGTH_PAGE_URL = "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/strengths/"
 NINO34_FORECAST_OUT = ASSETS_DIR / "nino34Mon.gif"
 ENSO_STRENGTH_PROB_OUT = ASSETS_DIR / "noaa_cpc_enso_strength_probabilities.png"
+ENSO_STRENGTH_PROB_JSON = ASSETS_DIR / "enso_strength_probabilities_latest.json"
+
+ENSO_STRENGTH_PROB_COLUMNS = [
+    "la_nina_very_strong",
+    "la_nina_strong",
+    "la_nina_moderate",
+    "la_nina_weak",
+    "neutral",
+    "el_nino_weak",
+    "el_nino_moderate",
+    "el_nino_strong",
+    "el_nino_very_strong",
+]
+ENSO_EL_NINO_PROB_COLUMNS = [
+    "el_nino_weak",
+    "el_nino_moderate",
+    "el_nino_strong",
+    "el_nino_very_strong",
+]
+ENSO_STRENGTH_PROB_LABELS = {
+    "la_nina_very_strong": "非常强拉尼娜",
+    "la_nina_strong": "强拉尼娜",
+    "la_nina_moderate": "中等拉尼娜",
+    "la_nina_weak": "弱拉尼娜",
+    "neutral": "中性",
+    "el_nino_weak": "弱厄尔尼诺",
+    "el_nino_moderate": "中等厄尔尼诺",
+    "el_nino_strong": "强厄尔尼诺",
+    "el_nino_very_strong": "非常强厄尔尼诺",
+}
+ENSO_EL_NINO_SHORT_LABELS = {
+    "el_nino_weak": "弱",
+    "el_nino_moderate": "中等",
+    "el_nino_strong": "强",
+    "el_nino_very_strong": "非常强",
+}
+SEASON_LETTER_BY_MONTH = {
+    1: "J",
+    2: "F",
+    3: "M",
+    4: "A",
+    5: "M",
+    6: "J",
+    7: "J",
+    8: "A",
+    9: "S",
+    10: "O",
+    11: "N",
+    12: "D",
+}
 
 CPC_30DAY_REGIONS = {
     "seasia": {
@@ -108,6 +158,7 @@ STATIC_BROWSER_ASSETS = [
 ]
 
 warnings: list[str] = []
+enso_strength_probabilities_cache: dict | None = None
 
 
 def now_beijing() -> datetime:
@@ -708,8 +759,9 @@ def download_mausam_sw_monsoon() -> None:
         warn(f"Mausam SW Monsoon 图片下载失败，保留已有图片：{exc}")
 
 
-def find_enso_strength_probabilities_url(page_url: str) -> str:
-    html_text = fetch_text(page_url, headers={**BROWSER_HEADERS, "Referer": page_url})
+def find_enso_strength_probabilities_url(page_url: str, html_text: str | None = None) -> str:
+    if html_text is None:
+        html_text = fetch_text(page_url, headers={**BROWSER_HEADERS, "Referer": page_url})
 
     for attrs in iter_img_attrs(html_text):
         src = attrs.get("src") or attrs.get("data-src") or attrs.get("data-lazy-src")
@@ -722,6 +774,257 @@ def find_enso_strength_probabilities_url(page_url: str) -> str:
     raise ValueError("没有找到 ENSO Strength Probabilities 主图")
 
 
+def clean_html_text(fragment: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", fragment)
+    text = unescape(text).replace("−", "-")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def parse_enso_strength_probabilities(html_text: str) -> dict:
+    html_text = re.sub(r"<!--.*?-->", "", html_text, flags=re.S)
+    issued_match = re.search(
+        r"<h2[^>]*>\s*Issued\s+([^<]+?)\s*</h2>",
+        html_text,
+        flags=re.I | re.S,
+    )
+    issued = re.sub(r"\s+", " ", issued_match.group(1)).strip() if issued_match else "未标注"
+
+    table_match = re.search(
+        r"<table\b[^>]*id=[\"']probabilities-table[\"'][^>]*>(.*?)</table>",
+        html_text,
+        flags=re.I | re.S,
+    )
+    if table_match is None:
+        raise ValueError("NOAA CPC 页面没有找到 ENSO 强度概率表")
+
+    rows = []
+    for row_match in re.finditer(r"<tr\b[^>]*>(.*?)</tr>", table_match.group(1), flags=re.I | re.S):
+        cells = re.findall(
+            r"<t[dh]\b[^>]*>(.*?)</t[dh]>",
+            row_match.group(1),
+            flags=re.I | re.S,
+        )
+        if len(cells) != 10:
+            continue
+
+        season_text = clean_html_text(cells[0])
+        season_match = re.match(r"([A-Z]{3})\b(.*)", season_text)
+        if not season_match:
+            continue
+
+        values = []
+        for cell in cells[1:]:
+            value_match = re.search(r"-?\d+", clean_html_text(cell))
+            if value_match is None:
+                raise ValueError(f"ENSO 强度概率表存在无法解析的单元格：{cell!r}")
+            values.append(int(value_match.group(0)))
+
+        season = season_match.group(1)
+        season_name = re.sub(r"\s+", "-", season_match.group(2).strip())
+        row = {
+            "season": season,
+            "season_name": season_name,
+        }
+        row.update(dict(zip(ENSO_STRENGTH_PROB_COLUMNS, values)))
+        rows.append(row)
+
+    if not rows:
+        raise ValueError("NOAA CPC ENSO 强度概率表没有解析到有效季节数据")
+
+    return {
+        "source_url": ENSO_STRENGTH_PAGE_URL,
+        "issued": issued,
+        "rows": rows,
+        "fetched_at": now_beijing().strftime("%Y-%m-%d %H:%M"),
+    }
+
+
+def store_enso_strength_probabilities(payload: dict) -> dict:
+    global enso_strength_probabilities_cache
+    enso_strength_probabilities_cache = payload
+    ENSO_STRENGTH_PROB_JSON.parent.mkdir(parents=True, exist_ok=True)
+    ENSO_STRENGTH_PROB_JSON.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return payload
+
+
+def load_cached_enso_strength_probabilities() -> dict | None:
+    if not ENSO_STRENGTH_PROB_JSON.exists():
+        return None
+    try:
+        payload = json.loads(ENSO_STRENGTH_PROB_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not payload.get("rows"):
+        return None
+    return payload
+
+
+def latest_enso_strength_probabilities() -> dict | None:
+    global enso_strength_probabilities_cache
+    if enso_strength_probabilities_cache is not None:
+        return enso_strength_probabilities_cache
+
+    try:
+        html_text = fetch_text(
+            ENSO_STRENGTH_PAGE_URL,
+            headers={**BROWSER_HEADERS, "Referer": ENSO_STRENGTH_PAGE_URL},
+        )
+        return store_enso_strength_probabilities(parse_enso_strength_probabilities(html_text))
+    except Exception as exc:
+        cached = load_cached_enso_strength_probabilities()
+        if cached is not None:
+            enso_strength_probabilities_cache = cached
+            warn(f"NOAA CPC ENSO 强度概率表抓取失败，使用缓存结论：{exc}")
+            return cached
+        warn(f"NOAA CPC ENSO 强度概率表抓取失败，预测结论暂不显示：{exc}")
+        return None
+
+
+def probability_value(row: dict, key: str) -> int:
+    try:
+        return int(row.get(key, 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def probability_sum(row: dict, keys: list[str]) -> int:
+    return sum(probability_value(row, key) for key in keys)
+
+
+def el_nino_strength_score(row: dict) -> int:
+    return (
+        probability_value(row, "el_nino_weak")
+        + probability_value(row, "el_nino_moderate") * 2
+        + probability_value(row, "el_nino_strong") * 3
+        + probability_value(row, "el_nino_very_strong") * 4
+    )
+
+
+def dominant_probability(row: dict, keys: list[str]) -> tuple[str, int]:
+    return max(
+        ((key, probability_value(row, key)) for key in keys),
+        key=lambda item: (item[1], keys.index(item[0])),
+    )
+
+
+def season_display(row: dict) -> str:
+    season = str(row.get("season", "")).strip()
+    season_name = str(row.get("season_name", "")).strip()
+    if season_name:
+        return f"{season}（{season_name}）"
+    return season
+
+
+def centered_season_code(current: datetime) -> str:
+    months = [
+        ((current.month - 2) % 12) + 1,
+        current.month,
+        (current.month % 12) + 1,
+    ]
+    return "".join(SEASON_LETTER_BY_MONTH[month] for month in months)
+
+
+def find_season_row(rows: list[dict], season_code: str) -> dict | None:
+    for row in rows:
+        if str(row.get("season", "")).upper() == season_code.upper():
+            return row
+    return None
+
+
+def el_nino_probabilities_text(row: dict) -> str:
+    parts = []
+    for key in ENSO_EL_NINO_PROB_COLUMNS:
+        value = probability_value(row, key)
+        if value:
+            parts.append(f"{ENSO_EL_NINO_SHORT_LABELS[key]} {value}%")
+    if not parts:
+        return "厄尔尼诺概率为 0%"
+    return "，".join(parts)
+
+
+def analyze_enso_strength_forecast(payload: dict, current: datetime | None = None) -> dict:
+    rows = list(payload.get("rows") or [])
+    if not rows:
+        raise ValueError("ENSO 强度概率数据为空")
+
+    current = current or now_beijing()
+    short_season = centered_season_code(current)
+    short_row = find_season_row(rows, short_season) or rows[0]
+
+    peak_index = max(
+        range(len(rows)),
+        key=lambda index: (
+            el_nino_strength_score(rows[index]),
+            probability_sum(rows[index], ["el_nino_strong", "el_nino_very_strong"]),
+            probability_sum(rows[index], ENSO_EL_NINO_PROB_COLUMNS),
+            index,
+        ),
+    )
+    peak_row = rows[peak_index]
+    peak_key, peak_probability = dominant_probability(peak_row, ENSO_EL_NINO_PROB_COLUMNS)
+    short_key, _ = dominant_probability(short_row, ENSO_STRENGTH_PROB_COLUMNS)
+
+    decline_row = None
+    previous_score = el_nino_strength_score(peak_row)
+    previous_strong_plus = probability_sum(peak_row, ["el_nino_strong", "el_nino_very_strong"])
+    for row in rows[peak_index + 1:]:
+        score = el_nino_strength_score(row)
+        if score < previous_score:
+            decline_row = {
+                "row": row,
+                "previous_score": previous_score,
+                "current_score": score,
+                "previous_strong_plus": previous_strong_plus,
+                "current_strong_plus": probability_sum(row, ["el_nino_strong", "el_nino_very_strong"]),
+            }
+            break
+        previous_score = score
+        previous_strong_plus = probability_sum(row, ["el_nino_strong", "el_nino_very_strong"])
+
+    peak_total = probability_sum(peak_row, ENSO_EL_NINO_PROB_COLUMNS)
+    peak_strong_plus = probability_sum(peak_row, ["el_nino_strong", "el_nino_very_strong"])
+    short_total = probability_sum(short_row, ENSO_EL_NINO_PROB_COLUMNS)
+    short_neutral = probability_value(short_row, "neutral")
+    dominant_short_label = ENSO_STRENGTH_PROB_LABELS[short_key]
+    dominant_peak_label = ENSO_STRENGTH_PROB_LABELS[peak_key]
+
+    if decline_row is None:
+        decline_text = "表内尚未出现明确回落"
+    else:
+        decline_text = (
+            f"{season_display(decline_row['row'])}开始回落"
+            f"（强及以上概率由 {decline_row['previous_strong_plus']}% "
+            f"降至 {decline_row['current_strong_plus']}%）"
+        )
+
+    return {
+        "issued": payload.get("issued", "未标注"),
+        "peak_line": (
+            f"最强预测季度：{season_display(peak_row)}，"
+            f"按 RONI 强度概率评分为表内最高"
+        ),
+        "peak_probability_line": (
+            f"峰值概率：{dominant_peak_label} {peak_probability}%；"
+            f"强及以上 {peak_strong_plus}%；总厄尔尼诺 {peak_total}%"
+        ),
+        "short_line": (
+            f"短期预测：{season_display(short_row)}以{dominant_short_label}为主"
+            f"（{el_nino_probabilities_text(short_row)}，总厄尔尼诺 {short_total}%；"
+            f"中性 {short_neutral}%）"
+        ),
+        "decline_line": f"回落起点：{decline_text}",
+        "method_text": (
+            "表格来源：NOAA CPC ENSO Strength Probabilities"
+            f"（Issued {payload.get('issued', '未标注')}）。"
+            "内部按 RONI / Relative Niño-3.4 分档概率计算：弱=1、中等=2、强=3、非常强=4 加权，"
+            "选择评分最高的季度作为预测峰值；原始概率表不在页面展示。"
+        ),
+    }
+
+
 def download_forecast_images() -> None:
     try:
         download_binary(NINO34_FORECAST_IMAGE_URL, NINO34_FORECAST_OUT)
@@ -730,7 +1033,18 @@ def download_forecast_images() -> None:
         warn(f"Niño 3.4 预测图下载失败，保留已有图片：{exc}")
 
     try:
-        image_url = find_enso_strength_probabilities_url(ENSO_STRENGTH_PAGE_URL)
+        html_text = fetch_text(
+            ENSO_STRENGTH_PAGE_URL,
+            headers={**BROWSER_HEADERS, "Referer": ENSO_STRENGTH_PAGE_URL},
+        )
+        try:
+            payload = parse_enso_strength_probabilities(html_text)
+            store_enso_strength_probabilities(payload)
+            print(f"ENSO 强度概率表解析成功：Issued {payload['issued']}")
+        except Exception as exc:
+            warn(f"ENSO 强度概率表解析失败，预测结论将尝试使用缓存：{exc}")
+
+        image_url = find_enso_strength_probabilities_url(ENSO_STRENGTH_PAGE_URL, html_text=html_text)
         download_binary(image_url, ENSO_STRENGTH_PROB_OUT, referer=ENSO_STRENGTH_PAGE_URL)
         print(f"ENSO 强度概率预测图下载成功：{ENSO_STRENGTH_PROB_OUT}")
     except Exception as exc:
@@ -1522,6 +1836,7 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .summary-lines { margin-top: 9px; display: grid; gap: 5px; color: #4F7081; font-size: 13px; line-height: 1.65; }
 .summary-line strong { color: var(--primary); font-weight: 850; }
 .summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
+.summary-panel + .forecast-grid { margin-top: 18px; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -1627,13 +1942,54 @@ def forecast_images() -> list[tuple[str, str, Path]]:
     ]
 
 
+def forecast_summary_panel() -> str:
+    payload = latest_enso_strength_probabilities()
+    if payload is None:
+        return """
+    <section class="summary-panel">
+      <div class="summary-label">NOAA CPC 强度概率解读</div>
+      <div class="summary-lines">
+        <div class="summary-line"><strong>预测结论：</strong>NOAA CPC 强度概率表暂未抓取成功</div>
+      </div>
+      <div class="summary-text">图片仍会展示；强度概率结论将在下次成功读取表格后自动恢复。</div>
+    </section>
+    """
+
+    analysis = analyze_enso_strength_forecast(payload)
+    lines = [
+        analysis["peak_line"],
+        analysis["peak_probability_line"],
+        analysis["short_line"],
+        analysis["decline_line"],
+    ]
+    line_html = "\n".join(
+        f'        <div class="summary-line"><strong>{escape(line.split("：", 1)[0])}：</strong>{escape(line.split("：", 1)[1])}</div>'
+        if "：" in line
+        else f'        <div class="summary-line">{escape(line)}</div>'
+        for line in lines
+    )
+
+    return f"""
+    <section class="summary-panel">
+      <div class="summary-label">NOAA CPC 强度概率解读</div>
+      <div class="summary-lines">
+{line_html}
+      </div>
+      <div class="summary-text">{escape(analysis["method_text"])}</div>
+    </section>
+    """
+
+
 def forecast_section() -> str:
+    summary = forecast_summary_panel()
     cards = "\n".join(image_card(title, period, path) for title, period, path in forecast_images())
     return f"""
     <div class="section-title">
       <h2>厄尔尼诺指标预测</h2>
       <span class="rule"></span>
     </div>
+
+    {summary}
 
     <section class="forecast-grid">
       {cards}
@@ -1657,6 +2013,10 @@ def country_section(section: dict) -> str:
       </div>
     </section>
     """
+
+
+def strip_trailing_line_whitespace(text: str) -> str:
+    return "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
 
 
 def build_html(metrics: list[dict]) -> str:
@@ -1744,7 +2104,7 @@ def main() -> None:
     run_browser_capture()
     note_browser_assets()
 
-    html = build_html(metrics)
+    html = strip_trailing_line_whitespace(build_html(metrics))
     OUTPUT_HTML.write_text(html, encoding="utf-8")
 
     print(f"HTML 已生成：{OUTPUT_HTML}")
