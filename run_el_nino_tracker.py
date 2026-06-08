@@ -824,10 +824,116 @@ def find_metric(metrics: list[dict], keywords: list[str]) -> dict | None:
     return None
 
 
+def metric_value(metric: dict | None) -> float | None:
+    if metric is None:
+        return None
+    try:
+        return float(metric.get("value"))
+    except (TypeError, ValueError):
+        return None
+
+
+def interpretation(text: str, tone: str, role: str) -> dict:
+    return {"text": text, "tone": tone, "role": role}
+
+
+def classify_nino34(value: float | None) -> dict:
+    if value is None:
+        return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
+    if value >= 2.0:
+        return interpretation("非常强厄尔尼诺倾向", "warm", "enso_warm")
+    if value >= 1.5:
+        return interpretation("强厄尔尼诺倾向", "warm", "enso_warm")
+    if value >= 1.0:
+        return interpretation("中等厄尔尼诺倾向", "warm", "enso_warm")
+    if value >= 0.5:
+        return interpretation("弱厄尔尼诺倾向", "warm", "enso_warm")
+    if value > -0.5:
+        return interpretation("中性", "neutral", "neutral")
+    if value > -1.0:
+        return interpretation("弱拉尼娜倾向", "cool", "enso_cool")
+    if value > -1.5:
+        return interpretation("中等拉尼娜倾向", "cool", "enso_cool")
+    if value > -2.0:
+        return interpretation("强拉尼娜倾向", "cool", "enso_cool")
+    return interpretation("非常强拉尼娜倾向", "cool", "enso_cool")
+
+
+def classify_soi(value: float | None, equatorial: bool = False) -> dict:
+    if value is None:
+        return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
+    suffix = "赤道大气响应" if equatorial else "大气响应"
+    if value <= -1.5:
+        return interpretation(f"较强厄尔尼诺型{suffix}", "warm", "enso_warm")
+    if value <= -1.0:
+        return interpretation(f"明显厄尔尼诺型{suffix}", "warm", "enso_warm")
+    if value <= -0.5:
+        return interpretation(f"偏厄尔尼诺型{suffix}", "warm", "enso_warm")
+    if value < 0.5:
+        return interpretation("中性", "neutral", "neutral")
+    if value < 1.0:
+        return interpretation(f"偏拉尼娜型{suffix}", "cool", "enso_cool")
+    if value < 1.5:
+        return interpretation(f"明显拉尼娜型{suffix}", "cool", "enso_cool")
+    return interpretation(f"较强拉尼娜型{suffix}", "cool", "enso_cool")
+
+
+def classify_heat_content(value: float | None) -> dict:
+    if value is None:
+        return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
+    if value >= 2.0:
+        return interpretation("暖水储备很强", "warm", "enso_warm")
+    if value >= 1.0:
+        return interpretation("暖水储备明显偏多", "warm", "enso_warm")
+    if value >= 0.5:
+        return interpretation("暖水储备偏多", "warm", "enso_warm")
+    if value > -0.5:
+        return interpretation("中性", "neutral", "neutral")
+    if value > -1.0:
+        return interpretation("冷水储备偏多", "cool", "enso_cool")
+    if value > -2.0:
+        return interpretation("冷水储备明显偏多", "cool", "enso_cool")
+    return interpretation("冷水储备很强", "cool", "enso_cool")
+
+
+def classify_iod(value: float | None) -> dict:
+    if value is None:
+        return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
+    if value >= 0.8:
+        return interpretation("较强正 IOD", "warm", "iod_positive")
+    if value >= 0.4:
+        return interpretation("正 IOD 倾向", "warm", "iod_positive")
+    if value > -0.4:
+        return interpretation("中性", "neutral", "neutral")
+    if value > -0.8:
+        return interpretation("负 IOD 倾向", "cool", "iod_negative")
+    return interpretation("较强负 IOD", "cool", "iod_negative")
+
+
+def classify_metric(kind: str, metric: dict | None) -> dict:
+    value = metric_value(metric)
+    if kind in {"nino_weekly", "nino_monthly"}:
+        return classify_nino34(value)
+    if kind == "soi":
+        return classify_soi(value)
+    if kind == "eq_soi":
+        return classify_soi(value, equatorial=True)
+    if kind == "heat":
+        return classify_heat_content(value)
+    if kind == "iod":
+        return classify_iod(value)
+    return interpretation("暂无法解读", "neutral", "neutral")
+
+
+def metric_interpretation(item: dict) -> dict:
+    return classify_metric(str(item.get("kind", "")), item.get("metric"))
+
+
 def metric_cards_data(metrics: list[dict]) -> list[dict]:
     return [
         {
             "title": "Niño 3.4 周度",
+            "kind": "nino_weekly",
             "metric": find_metric(metrics, ["weekly", "nino"])
             or find_metric(metrics, ["weekly", "niño"]),
             "date_label": "数据时间",
@@ -847,6 +953,7 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
         },
         {
             "title": "SOI 30天",
+            "kind": "soi",
             "metric": find_metric(metrics, ["soi", "海平面"]) or find_metric(metrics, ["soi"]),
             "date_label": "数据时间",
             "note": "",
@@ -863,6 +970,7 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
         },
         {
             "title": "赤道太平洋 0-300m 次表层水温",
+            "kind": "heat",
             "metric": find_metric(metrics, ["heatcentra"]) or find_metric(metrics, ["0-300m"]),
             "date_label": "数据时间",
             "note": "区域：160E-80W",
@@ -879,6 +987,7 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
         },
         {
             "title": "Niño 3.4 月度",
+            "kind": "nino_monthly",
             "metric": find_metric(metrics, ["niño", "月度"]) or find_metric(metrics, ["nino", "月度"]),
             "date_label": "数据月份",
             "note": "",
@@ -897,6 +1006,7 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
         },
         {
             "title": "赤道 SOI",
+            "kind": "eq_soi",
             "metric": find_metric(metrics, ["equatorial", "soi"]) or find_metric(metrics, ["赤道", "soi"]),
             "date_label": "数据月份",
             "note": "",
@@ -913,6 +1023,7 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
         },
         {
             "title": "IOD",
+            "kind": "iod",
             "metric": find_metric(metrics, ["iod"]),
             "date_label": "数据时间",
             "note": "",
@@ -1007,9 +1118,24 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .metric-card { min-height: 154px; padding: 22px 20px; border-radius: 16px; text-align: center; border-top: 5px solid var(--accent); }
 .metric-name { min-height: 38px; display: grid; place-items: center; color: var(--muted); font-weight: 800; font-size: 16px; }
 .metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
+.metric-interpretation {
+  display: inline-flex; align-items: center; justify-content: center; max-width: 100%;
+  margin: -4px auto 12px; padding: 7px 11px; border-radius: 999px;
+  font-size: 12px; line-height: 1.35; font-weight: 800; border: 1px solid transparent;
+}
+.metric-interpretation.warm { color: #9A5A17; background: #FFF4E6; border-color: #F4C98B; }
+.metric-interpretation.cool { color: #166D8F; background: #E8F7FF; border-color: #A9DDF1; }
+.metric-interpretation.neutral { color: #587482; background: #F1F8FB; border-color: #D7EEF8; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
 .metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; white-space: pre-line; }
+.summary-panel {
+  margin: 18px 0 0; padding: 18px 22px; border-radius: 16px;
+  background: rgba(255,255,255,.96); border: 1px solid var(--border);
+  border-left: 5px solid var(--accent); box-shadow: 0 12px 28px rgba(18,115,156,.07);
+}
+.summary-label { color: var(--primary); font-size: 15px; line-height: 1.4; font-weight: 850; }
+.summary-text { margin-top: 8px; color: #4F7081; font-size: 13px; line-height: 1.7; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -1037,6 +1163,7 @@ figcaption { padding: 12px 14px 15px; }
 
 def metric_card(item: dict) -> str:
     metric = item["metric"]
+    result = metric_interpretation(item)
     if metric is None:
         value_text = "N/A"
         date_text = "数据时间：未找到"
@@ -1054,10 +1181,62 @@ def metric_card(item: dict) -> str:
     <article class="metric-card">
       <div class="metric-name">{escape(item["title"])}</div>
       <div class="metric-value">{escape(value_text)}</div>
+      <div class="metric-interpretation {escape(result["tone"])}">当前解读：{escape(result["text"])}</div>
       <div class="metric-date">{escape(date_text)}</div>
       {note_html}
       {explanation_html}
     </article>
+    """
+
+
+def metric_summary_panel(cards: list[dict]) -> str:
+    interpretations = {
+        str(item.get("kind", "")): metric_interpretation(item)
+        for item in cards
+    }
+    enso_roles = [
+        item.get("role")
+        for kind, item in interpretations.items()
+        if kind != "iod"
+    ]
+    warm_count = enso_roles.count("enso_warm")
+    cool_count = enso_roles.count("enso_cool")
+
+    if warm_count >= 3 and warm_count > cool_count:
+        lead = "目前核心 ENSO 指标整体偏向厄尔尼诺信号。"
+        alignment = "海温端和大气端信号较一致"
+    elif cool_count >= 3 and cool_count > warm_count:
+        lead = "目前核心 ENSO 指标整体偏向拉尼娜信号。"
+        alignment = "海温端和大气端信号较一致"
+    else:
+        lead = "目前核心 ENSO 指标整体仍偏中性或信号存在分歧。"
+        alignment = "海温端和大气端信号仍需继续观察"
+
+    weekly = interpretations.get("nino_weekly", interpretation("数据缺失", "neutral", "neutral"))
+    monthly = interpretations.get("nino_monthly", interpretation("数据缺失", "neutral", "neutral"))
+    soi = interpretations.get("soi", interpretation("数据缺失", "neutral", "neutral"))
+    eq_soi = interpretations.get("eq_soi", interpretation("数据缺失", "neutral", "neutral"))
+    heat = interpretations.get("heat", interpretation("数据缺失", "neutral", "neutral"))
+    iod = interpretations.get("iod", interpretation("数据缺失", "neutral", "neutral"))
+
+    if iod.get("role") == "iod_negative":
+        iod_note = "可能增加印度季风偏弱和降雨不足的风险"
+    elif iod.get("role") == "iod_positive":
+        iod_note = "往往有利于印度季风降雨"
+    else:
+        iod_note = "对印度季风的异常指示暂不明显"
+
+    summary = (
+        f"{lead}Niño 3.4 周度和月度分别为{weekly['text']}、{monthly['text']}，"
+        f"SOI 30天和赤道 SOI 分别为{soi['text']}、{eq_soi['text']}，{alignment}。"
+        f"赤道太平洋次表层热含量显示{heat['text']}；IOD 当前为{iod['text']}，{iod_note}。"
+    )
+
+    return f"""
+    <section class="summary-panel">
+      <div class="summary-label">综合结论</div>
+      <div class="summary-text">{escape(summary)}</div>
+    </section>
     """
 
 
@@ -1100,7 +1279,9 @@ def build_html(metrics: list[dict]) -> str:
     generated_at = now_beijing().strftime("%Y-%m-%d %H:%M")
     metrics_saved_at = format_timestamp_beijing(METRICS_PAYLOAD_JSON_PATH.stat().st_mtime)
 
-    metric_cards = "\n".join(metric_card(item) for item in metric_cards_data(metrics))
+    metric_items = metric_cards_data(metrics)
+    metric_cards = "\n".join(metric_card(item) for item in metric_items)
+    metric_summary = metric_summary_panel(metric_items)
     country_sections = "\n".join(country_section(section) for section in country_weather())
 
     warning_html = ""
@@ -1143,6 +1324,8 @@ def build_html(metrics: list[dict]) -> str:
     <section class="metrics-grid">
       {metric_cards}
     </section>
+
+    {metric_summary}
 
     <div class="section-title">
       <h2>主产区天气图</h2>

@@ -41,9 +41,24 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .metric-card { min-height: 154px; padding: 22px 20px; border-radius: 16px; text-align: center; border-top: 5px solid var(--accent); }
 .metric-name { min-height: 38px; display: grid; place-items: center; color: var(--muted); font-weight: 800; font-size: 16px; }
 .metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
+.metric-interpretation {
+  display: inline-flex; align-items: center; justify-content: center; max-width: 100%;
+  margin: -4px auto 12px; padding: 7px 11px; border-radius: 999px;
+  font-size: 12px; line-height: 1.35; font-weight: 800; border: 1px solid transparent;
+}
+.metric-interpretation.warm { color: #9A5A17; background: #FFF4E6; border-color: #F4C98B; }
+.metric-interpretation.cool { color: #166D8F; background: #E8F7FF; border-color: #A9DDF1; }
+.metric-interpretation.neutral { color: #587482; background: #F1F8FB; border-color: #D7EEF8; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
 .metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; white-space: pre-line; }
+.summary-panel {
+  margin: 18px 0 0; padding: 18px 22px; border-radius: 16px;
+  background: rgba(255,255,255,.96); border: 1px solid var(--border);
+  border-left: 5px solid var(--accent); box-shadow: 0 12px 28px rgba(18,115,156,.07);
+}
+.summary-label { color: var(--primary); font-size: 15px; line-height: 1.4; font-weight: 850; }
+.summary-text { margin-top: 8px; color: #4F7081; font-size: 13px; line-height: 1.7; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -92,6 +107,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">Niño 3.4 周度</div>
       <div class="metric-value">+0.70 °C</div>
+      <div class="metric-interpretation warm">当前解读：弱厄尔尼诺倾向</div>
       <div class="metric-date">数据时间：2026年6月3日</div>
       
       <div class="metric-explanation">反映赤道中东太平洋 Niño 3.4 区域的一周平均海表温度距平，主要用于观察厄尔尼诺/拉尼娜状态的短期变化和转折信号。
@@ -110,6 +126,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">SOI 30天</div>
       <div class="metric-value">-1.50</div>
+      <div class="metric-interpretation warm">当前解读：较强厄尔尼诺型大气响应</div>
       <div class="metric-date">数据时间：2026年5月</div>
       
       <div class="metric-explanation">反映 Tahiti 与 Darwin 两地海平面气压差的标准化异常，主要用于判断大气端是否和海温变化状态一致。
@@ -126,6 +143,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">赤道太平洋 0-300m 次表层水温</div>
       <div class="metric-value">+1.96 °C</div>
+      <div class="metric-interpretation warm">当前解读：暖水储备明显偏多</div>
       <div class="metric-date">数据时间：2026年5月</div>
       <div class="metric-note">区域：160E-80W</div>
       <div class="metric-explanation">反映赤道太平洋上层 300 米海洋平均温度相对常年的偏离程度，主要用于判断赤道太平洋海表偏暖或偏冷背后是否有海洋内部热量支撑。
@@ -142,6 +160,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">Niño 3.4 月度</div>
       <div class="metric-value">+0.82 °C</div>
+      <div class="metric-interpretation warm">当前解读：弱厄尔尼诺倾向</div>
       <div class="metric-date">数据月份：2026年5月</div>
       
       <div class="metric-explanation">反映赤道中东太平洋 Niño 3.4 区域的月平均海表温度距平，主要用于判断厄尔尼诺/拉尼娜状态的月度背景强弱。
@@ -160,6 +179,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">赤道 SOI</div>
       <div class="metric-value">-1.00</div>
+      <div class="metric-interpretation warm">当前解读：明显厄尔尼诺型赤道大气响应</div>
       <div class="metric-date">数据月份：2026年5月</div>
       
       <div class="metric-explanation">反映赤道太平洋附近海平面气压差的标准化异常，主要用于判断赤道太平洋的大气环流是否和海温变化状态一致。
@@ -176,6 +196,7 @@ figcaption { padding: 12px 14px 15px; }
     <article class="metric-card">
       <div class="metric-name">IOD</div>
       <div class="metric-value">-0.43 °C</div>
+      <div class="metric-interpretation cool">当前解读：负 IOD 倾向</div>
       <div class="metric-date">数据时间：2026年5月31日</div>
       
       <div class="metric-explanation">反映热带印度洋西部和东部海温距平的差值，主要用于判断印度洋海温分布是否异常。
@@ -187,6 +208,12 @@ figcaption { padding: 12px 14px 15px; }
 正 IOD 往往有利于印度季风降雨，负 IOD 则可能增加印度季风偏弱和降雨不足的风险。</div>
     </article>
     
+    </section>
+
+
+    <section class="summary-panel">
+      <div class="summary-label">综合结论</div>
+      <div class="summary-text">目前核心 ENSO 指标整体偏向厄尔尼诺信号。Niño 3.4 周度和月度分别为弱厄尔尼诺倾向、弱厄尔尼诺倾向，SOI 30天和赤道 SOI 分别为较强厄尔尼诺型大气响应、明显厄尔尼诺型赤道大气响应，海温端和大气端信号较一致。赤道太平洋次表层热含量显示暖水储备明显偏多；IOD 当前为负 IOD 倾向，可能增加印度季风偏弱和降雨不足的风险。</div>
     </section>
 
     <div class="section-title">
