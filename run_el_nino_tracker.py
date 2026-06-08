@@ -1231,6 +1231,88 @@ def build_iod_note(iod: dict) -> str:
     return f"IOD 当前为{iod['text']}，对印度季风的异常指示暂不明显。"
 
 
+def decision_direction(decision: dict) -> str:
+    text = f"{decision.get('main_state', '')} {decision.get('chain', '')}"
+    if "厄尔尼诺" in text or "偏暖" in text:
+        return "warm"
+    if "拉尼娜" in text or "偏冷" in text:
+        return "cool"
+    return "neutral"
+
+
+def sugar_bias(direction: str, strength: str) -> str:
+    if strength in {"分歧", "无明确链条"} or direction == "neutral":
+        return "中性观望"
+    if direction == "warm":
+        if strength in {"中等偏强", "强", "很强"}:
+            return "偏利多糖价"
+        if strength == "中等":
+            return "中性偏利多糖价"
+        return "轻微利多糖价，仍需观察"
+    if direction == "cool":
+        if strength in {"中等偏强", "强", "很强"}:
+            return "偏利空糖价"
+        if strength == "中等":
+            return "中性偏利空糖价"
+        return "轻微利空糖价，仍需观察"
+    return "中性观望"
+
+
+def build_sugar_impact(decision: dict, iod: dict) -> dict:
+    direction = decision_direction(decision)
+    strength = str(decision.get("strength", ""))
+    bias = sugar_bias(direction, strength)
+
+    if strength == "分歧":
+        return {
+            "bias": bias,
+            "text": (
+                "当前 ENSO 链条内部存在分歧，暂不输出明确利多或利空方向。"
+                "糖价需要优先跟踪印度、泰国和巴西的实际降雨、压榨进度、出口政策和库存变化。"
+            ),
+        }
+
+    if direction == "warm":
+        if iod.get("role") == "iod_negative":
+            iod_modifier = "负 IOD 会进一步增加印度季风偏弱和降雨不足风险，强化亚洲甘蔗减产担忧。"
+        elif iod.get("role") == "iod_positive":
+            iod_modifier = "正 IOD 往往有利于印度季风降雨，可能部分对冲厄尔尼诺带来的亚洲偏干风险。"
+        else:
+            iod_modifier = "IOD 当前中性，对印度季风风险没有明显放大或对冲。"
+        return {
+            "bias": bias,
+            "text": (
+                f"{decision.get('main_state', '厄尔尼诺倾向')}下，印度、泰国等亚洲季风甘蔗产区偏干风险上升，"
+                "甘蔗生长和单产预期容易承压；巴西中南部影响偏混合，需看降雨是否扰动压榨节奏。"
+                f"{iod_modifier}整体看，这是糖价的天气风险溢价，{bias}。"
+            ),
+        }
+
+    if direction == "cool":
+        if iod.get("role") == "iod_negative":
+            iod_modifier = "但负 IOD 会增加印度季风偏弱风险，可能削弱拉尼娜对亚洲甘蔗产区的利好。"
+        elif iod.get("role") == "iod_positive":
+            iod_modifier = "正 IOD 往往有利于印度季风降雨，可能进一步改善印度甘蔗产区水分条件。"
+        else:
+            iod_modifier = "IOD 当前中性，对印度季风风险没有明显放大或对冲。"
+        return {
+            "bias": bias,
+            "text": (
+                f"{decision.get('main_state', '拉尼娜倾向')}下，印度、泰国等亚洲季风甘蔗产区水分条件改善概率上升，"
+                "有利于甘蔗生长和供应预期；不过过量降雨或洪涝也可能短期扰动收割。"
+                f"{iod_modifier}整体看，对糖价的天气风险溢价偏降温，{bias}。"
+            ),
+        }
+
+    return {
+        "bias": bias,
+        "text": (
+            "当前 Niño 3.4 尚未触发明确 ENSO 主状态，ENSO 对甘蔗供应和糖价的边际指示不强。"
+            "糖价更应关注主产区实际降雨、巴西压榨进度、印度出口政策和库存变化。"
+        ),
+    }
+
+
 def metric_cards_data(metrics: list[dict]) -> list[dict]:
     return [
         {
@@ -1503,6 +1585,7 @@ def metric_summary_panel(cards: list[dict]) -> str:
     iod = interpretations.get("iod", interpretation("数据缺失", "neutral", "neutral"))
     decision = build_chain_decision(interpretations)
     iod_note = build_iod_note(iod)
+    sugar_impact = build_sugar_impact(decision, iod)
 
     return f"""
     <section class="summary-panel">
@@ -1511,8 +1594,10 @@ def metric_summary_panel(cards: list[dict]) -> str:
         <div class="summary-line"><strong>当前 ENSO 主状态：</strong>{escape(decision["main_state"])}</div>
         <div class="summary-line"><strong>触发链条：</strong>{escape(decision["chain"])}</div>
         <div class="summary-line"><strong>链条强度：</strong>{escape(decision["strength"])}</div>
+        <div class="summary-line"><strong>糖价影响倾向：</strong>{escape(sugar_impact["bias"])}</div>
       </div>
       <div class="summary-text">判断依据：{escape(decision["basis"])}</div>
+      <div class="summary-text">产业解读：{escape(sugar_impact["text"])}</div>
       <div class="summary-text">{escape(iod_note)}IOD 不参与 ENSO 链条评分。</div>
     </section>
     """
