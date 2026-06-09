@@ -1914,7 +1914,7 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .summary-lines { margin-top: 9px; display: grid; gap: 5px; color: #4F7081; font-size: 13px; line-height: 1.65; }
 .summary-line strong { color: var(--primary); font-weight: 850; }
 .summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
-.summary-panel + .forecast-grid { margin-top: 18px; }
+.summary-panel + .forecast-grid, .summary-panel + .metrics-grid { margin-top: 18px; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
@@ -2149,11 +2149,11 @@ def build_html(metrics: list[dict]) -> str:
       <span class="rule"></span>
     </div>
 
+    {metric_summary}
+
     <section class="metrics-grid">
       {metric_cards}
     </section>
-
-    {metric_summary}
 
     <div class="section-title">
       <h2>主产区天气图</h2>
