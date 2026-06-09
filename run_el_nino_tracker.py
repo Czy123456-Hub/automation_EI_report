@@ -1243,7 +1243,7 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
 
     conclusion = (
         f"{season_month_range_display(peak_row)}为表内最强预测窗口，"
-        f"动态阈值判定为{peak_level}；强+超强概率 {peak_strong_plus}%，"
+        f"判定为{peak_level}；强+超强概率 {peak_strong_plus}%，"
         f"其中超强 {peak_super}%，总厄尔尼诺 {peak_total}%。"
     )
     focus = (
@@ -1274,7 +1274,7 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
             "表格来源：NOAA CPC ENSO Strength Probabilities"
             f"（Issued {payload.get('issued', '未标注')}）。"
             "内部按 RONI / Relative Niño-3.4 分档概率计算：弱=1、中等=2、强=3、超强=4 加权，"
-            "选择评分最高的月份窗口作为预测峰值；强度摘要按 45% 动态阈值输出。"
+            "选择评分最高的月份窗口作为预测峰值；强度摘要按 45% 规则输出。"
         ),
     }
 
