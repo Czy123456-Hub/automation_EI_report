@@ -1913,6 +1913,10 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .summary-label { color: var(--primary); font-size: 15px; line-height: 1.4; font-weight: 850; }
 .summary-lines { margin-top: 9px; display: grid; gap: 5px; color: #4F7081; font-size: 13px; line-height: 1.65; }
 .summary-line strong { color: var(--primary); font-weight: 850; }
+.summary-value { font-weight: 850; }
+.summary-value.warm, .summary-value.bullish { color: #C43D2F; }
+.summary-value.cool, .summary-value.bearish { color: #166D8F; }
+.summary-value.neutral { color: #587482; }
 .summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
 .summary-panel + .forecast-grid, .summary-panel + .metrics-grid { margin-top: 18px; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
@@ -1970,6 +1974,57 @@ def metric_card(item: dict) -> str:
     """
 
 
+def display_main_state(text: str) -> str:
+    return str(text or "").replace("倾向", "").strip()
+
+
+def chain_alignment_summary(decision: dict) -> str:
+    chain = str(decision.get("chain", ""))
+    strength = str(decision.get("strength", ""))
+    direction = decision_direction(decision)
+
+    if strength == "分歧" or "分歧" in chain:
+        return "多指标存在分歧"
+    if direction in {"warm", "cool"}:
+        label = enso_label(direction)
+        if "完整链条" in chain:
+            return f"{label}多指标相符"
+        if "部分链条" in chain:
+            return f"{label}多指标部分相符"
+        if "海气链条" in chain:
+            return f"{label}海温与大气相符"
+        if "海洋链条" in chain:
+            return f"{label}海温与次表层相符"
+        if "海温单项链条" in chain:
+            return f"{label}主要由海温触发"
+        return f"{label}信号占优"
+    if "偏暖" in chain:
+        return "偏暖背景信号，但海温未触发"
+    if "偏冷" in chain:
+        return "偏冷背景信号，但海温未触发"
+    return "多指标未形成明确方向"
+
+
+def summary_tone_class(direction: str) -> str:
+    if direction == "warm":
+        return "warm"
+    if direction == "cool":
+        return "cool"
+    return "neutral"
+
+
+def sugar_tone_class(bias: str) -> str:
+    if "利多" in bias:
+        return "bullish"
+    if "利空" in bias:
+        return "bearish"
+    return "neutral"
+
+
+def summary_value(text: str, tone: str) -> str:
+    return f'<span class="summary-value {escape(tone)}">{escape(text)}</span>'
+
+
 def metric_summary_panel(cards: list[dict]) -> str:
     interpretations = {
         str(item.get("kind", "")): metric_interpretation(item)
@@ -1977,21 +2032,22 @@ def metric_summary_panel(cards: list[dict]) -> str:
     }
     iod = interpretations.get("iod", interpretation("数据缺失", "neutral", "neutral"))
     decision = build_chain_decision(interpretations)
-    iod_note = build_iod_note(iod)
     sugar_impact = build_sugar_impact(decision, iod)
+    direction = decision_direction(decision)
+    main_state = display_main_state(decision["main_state"])
+    main_state_html = summary_value(main_state, summary_tone_class(direction))
+    chain_summary = chain_alignment_summary(decision)
+    sugar_bias_html = summary_value(sugar_impact["bias"], sugar_tone_class(sugar_impact["bias"]))
 
     return f"""
     <section class="summary-panel">
       <div class="summary-label">ENSO 链条判定</div>
       <div class="summary-lines">
-        <div class="summary-line"><strong>当前 ENSO 主状态：</strong>{escape(decision["main_state"])}</div>
-        <div class="summary-line"><strong>触发链条：</strong>{escape(decision["chain"])}</div>
-        <div class="summary-line"><strong>链条强度：</strong>{escape(decision["strength"])}</div>
-        <div class="summary-line"><strong>糖价影响倾向：</strong>{escape(sugar_impact["bias"])}</div>
+        <div class="summary-line"><strong>当前 ENSO 主状态：</strong>{main_state_html}</div>
+        <div class="summary-line"><strong>多指标判断：</strong>{escape(chain_summary)}</div>
+        <div class="summary-line"><strong>指标强度：</strong>{escape(decision["strength"])}</div>
+        <div class="summary-line"><strong>糖价影响倾向：</strong>{sugar_bias_html}</div>
       </div>
-      <div class="summary-text">判断依据：{escape(decision["basis"])}</div>
-      <div class="summary-text">产业解读：{escape(sugar_impact["text"])}</div>
-      <div class="summary-text">{escape(iod_note)}IOD 不参与 ENSO 链条评分。</div>
     </section>
     """
 
