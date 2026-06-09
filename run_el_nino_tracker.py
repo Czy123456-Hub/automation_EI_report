@@ -71,8 +71,14 @@ ENSO_EL_NINO_PROB_COLUMNS = [
     "el_nino_strong",
     "el_nino_very_strong",
 ]
+ENSO_LA_NINA_PROB_COLUMNS = [
+    "la_nina_weak",
+    "la_nina_moderate",
+    "la_nina_strong",
+    "la_nina_very_strong",
+]
 ENSO_STRENGTH_PROB_LABELS = {
-    "la_nina_very_strong": "非常强拉尼娜",
+    "la_nina_very_strong": "超强拉尼娜",
     "la_nina_strong": "强拉尼娜",
     "la_nina_moderate": "中等拉尼娜",
     "la_nina_weak": "弱拉尼娜",
@@ -80,13 +86,13 @@ ENSO_STRENGTH_PROB_LABELS = {
     "el_nino_weak": "弱厄尔尼诺",
     "el_nino_moderate": "中等厄尔尼诺",
     "el_nino_strong": "强厄尔尼诺",
-    "el_nino_very_strong": "非常强厄尔尼诺",
+    "el_nino_very_strong": "超强厄尔尼诺",
 }
 ENSO_EL_NINO_SHORT_LABELS = {
     "el_nino_weak": "弱",
     "el_nino_moderate": "中等",
     "el_nino_strong": "强",
-    "el_nino_very_strong": "非常强",
+    "el_nino_very_strong": "超强",
 }
 SEASON_LETTER_BY_MONTH = {
     1: "J",
@@ -918,6 +924,34 @@ def season_display(row: dict) -> str:
     return season
 
 
+def month_after(start_month: int, offset: int) -> int:
+    return ((start_month - 1 + offset) % 12) + 1
+
+
+def season_code_from_start_month(start_month: int) -> str:
+    months = [month_after(start_month, offset) for offset in range(3)]
+    return "".join(SEASON_LETTER_BY_MONTH[month] for month in months)
+
+
+def season_start_month_from_code(season_code: str) -> int | None:
+    season_code = str(season_code or "").upper()
+    for month in range(1, 13):
+        if season_code_from_start_month(month) == season_code:
+            return month
+    return None
+
+
+def month_range_text(start_month: int) -> str:
+    return f"{start_month}-{month_after(start_month, 2)}月"
+
+
+def season_month_range_display(row: dict) -> str:
+    start_month = season_start_month_from_code(str(row.get("season", "")))
+    if start_month is None:
+        return season_display(row)
+    return month_range_text(start_month)
+
+
 def centered_season_code(current: datetime) -> str:
     months = [
         ((current.month - 2) % 12) + 1,
@@ -943,6 +977,121 @@ def el_nino_probabilities_text(row: dict) -> str:
     if not parts:
         return "厄尔尼诺概率为 0%"
     return "，".join(parts)
+
+
+def el_nino_probability_details(row: dict) -> list[tuple[str, int]]:
+    return [
+        ("中性", probability_value(row, "neutral")),
+        ("弱", probability_value(row, "el_nino_weak")),
+        ("中等", probability_value(row, "el_nino_moderate")),
+        ("强", probability_value(row, "el_nino_strong")),
+        ("超强", probability_value(row, "el_nino_very_strong")),
+    ]
+
+
+def el_nino_strength_floor(row: dict) -> str:
+    strong_plus = probability_sum(row, ["el_nino_strong", "el_nino_very_strong"])
+    moderate_plus = probability_sum(
+        row,
+        ["el_nino_moderate", "el_nino_strong", "el_nino_very_strong"],
+    )
+    total = probability_sum(row, ENSO_EL_NINO_PROB_COLUMNS)
+    neutral_weak = probability_sum(row, ["neutral", "el_nino_weak"])
+
+    if strong_plus >= 45:
+        return "强以上"
+    if moderate_plus >= 45:
+        return "中等以上"
+    if total >= 45:
+        return "弱以上"
+    if neutral_weak >= 45:
+        return "中性至弱"
+    if probability_value(row, "neutral") >= 45:
+        return "中性"
+    return "厄尔尼诺信号不足"
+
+
+def forecast_display_rows(rows: list[dict], current: datetime) -> list[dict]:
+    rows_by_code = {
+        str(row.get("season", "")).upper(): row
+        for row in rows
+    }
+    selected: list[dict] = []
+    selected_codes: set[str] = set()
+    for offset in (0, 2, 4, 6):
+        code = season_code_from_start_month(month_after(current.month, offset))
+        row = rows_by_code.get(code)
+        if row is not None and code not in selected_codes:
+            selected.append(row)
+            selected_codes.add(code)
+
+    for row in rows:
+        code = str(row.get("season", "")).upper()
+        if len(selected) >= 4:
+            break
+        if code not in selected_codes:
+            selected.append(row)
+            selected_codes.add(code)
+    return selected
+
+
+def forecast_segment_data(row: dict) -> dict:
+    strong_plus = probability_sum(row, ["el_nino_strong", "el_nino_very_strong"])
+    total = probability_sum(row, ENSO_EL_NINO_PROB_COLUMNS)
+    dominant_key, dominant_value = dominant_probability(row, ENSO_EL_NINO_PROB_COLUMNS)
+    return {
+        "period": season_month_range_display(row),
+        "level": el_nino_strength_floor(row),
+        "dominant": ENSO_STRENGTH_PROB_LABELS[dominant_key],
+        "dominant_value": dominant_value,
+        "strong_plus": strong_plus,
+        "total": total,
+        "probabilities": el_nino_probability_details(row),
+    }
+
+
+def first_el_nino_start_row(rows: list[dict]) -> dict | None:
+    for row in rows:
+        if probability_sum(row, ENSO_EL_NINO_PROB_COLUMNS) >= 45:
+            return row
+    return None
+
+
+def forecast_market_bias(peak_row: dict) -> tuple[str, str]:
+    el_total = probability_sum(peak_row, ENSO_EL_NINO_PROB_COLUMNS)
+    la_total = probability_sum(peak_row, ENSO_LA_NINA_PROB_COLUMNS)
+    strong_plus = probability_sum(peak_row, ["el_nino_strong", "el_nino_very_strong"])
+    moderate_plus = probability_sum(
+        peak_row,
+        ["el_nino_moderate", "el_nino_strong", "el_nino_very_strong"],
+    )
+
+    if el_total >= 45 and el_total >= la_total:
+        if strong_plus >= 45:
+            return (
+                "偏利多糖价",
+                "亚洲甘蔗产区偏干和单产下修风险上升，容易抬升糖价天气风险溢价。",
+            )
+        if moderate_plus >= 45 or el_total >= 70:
+            return (
+                "中性偏利多糖价",
+                "厄尔尼诺风险占优，但还需要印度、泰国实际降雨继续验证。",
+            )
+        return (
+            "轻微利多糖价，仍需观察",
+            "厄尔尼诺信号存在，但天气风险溢价仍需要主产区降雨配合。",
+        )
+
+    if la_total >= 45 and la_total > el_total:
+        return (
+            "偏利空糖价",
+            "拉尼娜概率占优时，亚洲季风水分条件改善的概率上升，可能压低糖价天气风险溢价。",
+        )
+
+    return (
+        "中性观望",
+        "ENSO 强度概率暂未形成明确方向，糖价更需要看主产区实际降雨和供应节奏。",
+    )
 
 
 def build_enso_strength_market_view(
@@ -1019,8 +1168,10 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
         raise ValueError("ENSO 强度概率数据为空")
 
     current = current or now_beijing()
-    short_season = centered_season_code(current)
-    short_row = find_season_row(rows, short_season) or rows[0]
+    display_segments = [
+        forecast_segment_data(row)
+        for row in forecast_display_rows(rows, current)
+    ]
 
     peak_index = max(
         range(len(rows)),
@@ -1033,7 +1184,6 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
     )
     peak_row = rows[peak_index]
     peak_key, peak_probability = dominant_probability(peak_row, ENSO_EL_NINO_PROB_COLUMNS)
-    short_key, _ = dominant_probability(short_row, ENSO_STRENGTH_PROB_COLUMNS)
 
     decline_row = None
     previous_score = el_nino_strength_score(peak_row)
@@ -1052,53 +1202,79 @@ def analyze_enso_strength_forecast(payload: dict, current: datetime | None = Non
         previous_score = score
         previous_strong_plus = probability_sum(row, ["el_nino_strong", "el_nino_very_strong"])
 
+    start_row = first_el_nino_start_row(rows)
     peak_total = probability_sum(peak_row, ENSO_EL_NINO_PROB_COLUMNS)
     peak_strong_plus = probability_sum(peak_row, ["el_nino_strong", "el_nino_very_strong"])
-    short_total = probability_sum(short_row, ENSO_EL_NINO_PROB_COLUMNS)
-    short_neutral = probability_value(short_row, "neutral")
-    dominant_short_label = ENSO_STRENGTH_PROB_LABELS[short_key]
+    peak_super = probability_value(peak_row, "el_nino_very_strong")
+    peak_level = el_nino_strength_floor(peak_row)
     dominant_peak_label = ENSO_STRENGTH_PROB_LABELS[peak_key]
-    market_view = build_enso_strength_market_view(
-        peak_row,
-        peak_key,
-        peak_total,
-        peak_strong_plus,
-        decline_row,
-    )
+    sugar_bias_text, sugar_logic = forecast_market_bias(peak_row)
 
     if decline_row is None:
-        decline_text = "表内尚未出现明确回落"
+        decline = {
+            "period": "预测窗口内未见明确回落",
+            "detail": "峰值之后表内 RONI 加权评分尚未下降，利多天气风险暂不宜过早下修。",
+            "has_decline": False,
+        }
     else:
-        decline_text = (
-            f"{season_display(decline_row['row'])}开始回落"
-            f"（强及以上概率由 {decline_row['previous_strong_plus']}% "
-            f"降至 {decline_row['current_strong_plus']}%）"
-        )
+        decline = {
+            "period": season_month_range_display(decline_row["row"]),
+            "detail": (
+                f"从{season_month_range_display(decline_row['row'])}开始，"
+                f"强+超强概率由 {decline_row['previous_strong_plus']}% "
+                f"降至 {decline_row['current_strong_plus']}%。"
+            ),
+            "has_decline": True,
+        }
+
+    if start_row is None:
+        start = {
+            "period": "预测窗口内未触发",
+            "detail": "总厄尔尼诺概率尚未达到 45%，暂不判定明确起始窗口。",
+        }
+    else:
+        start = {
+            "period": season_month_range_display(start_row),
+            "detail": (
+                f"总厄尔尼诺概率 {probability_sum(start_row, ENSO_EL_NINO_PROB_COLUMNS)}%，"
+                f"判定为{el_nino_strength_floor(start_row)}。"
+            ),
+        }
+
+    conclusion = (
+        f"{season_month_range_display(peak_row)}为表内最强预测窗口，"
+        f"动态阈值判定为{peak_level}；强+超强概率 {peak_strong_plus}%，"
+        f"其中超强 {peak_super}%，总厄尔尼诺 {peak_total}%。"
+    )
+    focus = (
+        "印度、泰国季风降雨是否偏弱、甘蔗产区土壤水分和单产预期；"
+        "同时跟踪巴西中南部降雨对压榨节奏的扰动；"
+        "回落窗口出现后，观察厄尔尼诺利多是否边际降温。"
+    )
 
     return {
         "issued": payload.get("issued", "未标注"),
-        "peak_line": (
-            f"厄尔尼诺最强预测季度：{season_display(peak_row)}，"
-            f"按 RONI 强度概率评分为表内最高"
-        ),
-        "peak_probability_line": (
-            f"峰值概率：{dominant_peak_label} {peak_probability}%；"
-            f"强及以上 {peak_strong_plus}%；总厄尔尼诺 {peak_total}%"
-        ),
-        "short_line": (
-            f"短期预测：{season_display(short_row)}以{dominant_short_label}为主"
-            f"（{el_nino_probabilities_text(short_row)}，总厄尔尼诺 {short_total}%；"
-            f"中性 {short_neutral}%）"
-        ),
-        "decline_line": f"回落起点：{decline_text}",
-        "conclusion_line": f"预测结论：{market_view['conclusion']}",
-        "focus_line": f"重点关注：{market_view['focus']}",
-        "sugar_impact_line": f"糖价影响：{market_view['sugar_impact']}",
+        "segments": display_segments,
+        "start": start,
+        "peak": {
+            "period": season_month_range_display(peak_row),
+            "level": peak_level,
+            "dominant": dominant_peak_label,
+            "dominant_value": peak_probability,
+            "strong_plus": peak_strong_plus,
+            "total": peak_total,
+            "super": peak_super,
+        },
+        "decline": decline,
+        "conclusion": conclusion,
+        "focus": focus,
+        "sugar_bias": sugar_bias_text,
+        "sugar_logic": sugar_logic,
         "method_text": (
             "表格来源：NOAA CPC ENSO Strength Probabilities"
             f"（Issued {payload.get('issued', '未标注')}）。"
-            "内部按 RONI / Relative Niño-3.4 分档概率计算：弱=1、中等=2、强=3、非常强=4 加权，"
-            "选择评分最高的季度作为预测峰值；原始概率表不在页面展示。"
+            "内部按 RONI / Relative Niño-3.4 分档概率计算：弱=1、中等=2、强=3、超强=4 加权，"
+            "选择评分最高的月份窗口作为预测峰值；强度摘要按 45% 动态阈值输出。"
         ),
     }
 
@@ -1274,7 +1450,7 @@ def classify_nino34(value: float | None) -> dict:
     if value is None:
         return interpretation("数据缺失，暂无法解读", "neutral", "neutral")
     if value >= 2.0:
-        return interpretation("非常强厄尔尼诺倾向", "warm", "enso_warm", 4)
+        return interpretation("超强厄尔尼诺倾向", "warm", "enso_warm", 4)
     if value >= 1.5:
         return interpretation("强厄尔尼诺倾向", "warm", "enso_warm", 3)
     if value >= 1.0:
@@ -1289,7 +1465,7 @@ def classify_nino34(value: float | None) -> dict:
         return interpretation("中等拉尼娜倾向", "cool", "enso_cool", 2)
     if value > -2.0:
         return interpretation("强拉尼娜倾向", "cool", "enso_cool", 3)
-    return interpretation("非常强拉尼娜倾向", "cool", "enso_cool", 4)
+    return interpretation("超强拉尼娜倾向", "cool", "enso_cool", 4)
 
 
 def classify_soi(value: float | None, equatorial: bool = False) -> dict:
@@ -1360,6 +1536,44 @@ def classify_metric(kind: str, metric: dict | None) -> dict:
 
 def metric_interpretation(item: dict) -> dict:
     return classify_metric(str(item.get("kind", "")), item.get("metric"))
+
+
+def metric_status_display_text(item: dict, result: dict) -> str:
+    kind = str(item.get("kind", ""))
+    text = str(result.get("text", "")).replace("非常强", "超强")
+    if "数据缺失" in text or "暂无法" in text:
+        return text
+
+    if kind in {"nino_weekly", "nino_monthly"}:
+        if text == "中性":
+            return "海温中性"
+        return text.replace("倾向", "").strip()
+
+    if kind == "soi":
+        if text == "中性":
+            return "大气响应中性"
+        return text.replace("倾向", "").strip()
+
+    if kind == "eq_soi":
+        if text == "中性":
+            return "赤道大气响应中性"
+        return text.replace("倾向", "").strip()
+
+    if kind == "heat":
+        if text == "中性":
+            return "次表层热量中性"
+        return text
+
+    if kind == "iod":
+        role = result.get("role")
+        rank = int(result.get("rank", 0) or 0)
+        if role == "iod_positive":
+            return "有利印度季风降雨" if rank >= 2 else "偏有利印度季风降雨"
+        if role == "iod_negative":
+            return "增加印度季风偏弱风险" if rank >= 2 else "偏增加印度季风偏弱风险"
+        return "对印度季风影响中性"
+
+    return text.replace("倾向", "").strip()
 
 
 def enso_direction(result: dict) -> str:
@@ -1720,11 +1934,11 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
                 "+0.5°C 到 +0.9°C 表示弱厄尔尼诺倾向；\n"
                 "+1.0°C 到 +1.4°C 表示中等厄尔尼诺倾向；\n"
                 "+1.5°C 到 +1.9°C 表示强厄尔尼诺倾向；\n"
-                "+2.0°C 以上表示非常强厄尔尼诺倾向；\n"
+                "+2.0°C 以上表示超强厄尔尼诺倾向；\n"
                 "-0.5°C 到 -0.9°C 表示弱拉尼娜倾向；\n"
                 "-1.0°C 到 -1.4°C 表示中等拉尼娜倾向；\n"
                 "-1.5°C 到 -1.9°C 表示强拉尼娜倾向；\n"
-                "低于 -2.0°C 表示非常强拉尼娜倾向。"
+                "低于 -2.0°C 表示超强拉尼娜倾向。"
             ),
         },
         {
@@ -1773,11 +1987,11 @@ def metric_cards_data(metrics: list[dict]) -> list[dict]:
                 "+0.5°C 到 +0.9°C 表示弱厄尔尼诺倾向；\n"
                 "+1.0°C 到 +1.4°C 表示中等厄尔尼诺倾向；\n"
                 "+1.5°C 到 +1.9°C 表示强厄尔尼诺倾向；\n"
-                "+2.0°C 以上表示非常强厄尔尼诺倾向；\n"
+                "+2.0°C 以上表示超强厄尔尼诺倾向；\n"
                 "-0.5°C 到 -0.9°C 表示弱拉尼娜倾向；\n"
                 "-1.0°C 到 -1.4°C 表示中等拉尼娜倾向；\n"
                 "-1.5°C 到 -1.9°C 表示强拉尼娜倾向；\n"
-                "低于 -2.0°C 表示非常强拉尼娜倾向。"
+                "低于 -2.0°C 表示超强拉尼娜倾向。"
             ),
         },
         {
@@ -1918,6 +2132,29 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .summary-value.cool, .summary-value.bearish { color: #166D8F; }
 .summary-value.neutral { color: #587482; }
 .summary-text { margin-top: 9px; color: #4F7081; font-size: 13px; line-height: 1.7; }
+.forecast-key-grid {
+  margin-top: 13px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px; padding-bottom: 13px; border-bottom: 1px solid var(--border);
+}
+.forecast-key-item { min-width: 0; }
+.forecast-key-label { color: #7EA2B3; font-size: 12px; font-weight: 850; }
+.forecast-key-value { margin-top: 4px; color: var(--primary); font-size: 18px; line-height: 1.25; font-weight: 900; }
+.forecast-key-value.warm, .forecast-key-value.bullish { color: #C43D2F; }
+.forecast-key-value.cool, .forecast-key-value.bearish { color: #166D8F; }
+.forecast-key-value.neutral { color: #587482; }
+.forecast-key-detail { margin-top: 4px; color: #587482; font-size: 12px; line-height: 1.45; }
+.forecast-segments { margin-top: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.forecast-segment {
+  padding: 10px 11px 11px; border-radius: 10px; border: 1px solid var(--border);
+  background: #F8FDFF;
+}
+.forecast-segment-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.forecast-period { color: var(--primary); font-size: 15px; line-height: 1.25; font-weight: 900; }
+.forecast-level { color: #C43D2F; font-size: 12px; line-height: 1.3; font-weight: 900; text-align: right; }
+.forecast-probs { margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; }
+.forecast-prob { color: #4F7081; font-size: 12px; line-height: 1.35; white-space: nowrap; }
+.forecast-prob strong { color: #1C6F95; font-weight: 900; }
+.forecast-segment-note { margin-top: 8px; color: #7EA2B3; font-size: 11px; line-height: 1.45; }
 .summary-panel + .forecast-grid, .summary-panel + .metrics-grid { margin-top: 18px; }
 .country-section { margin-top: 22px; padding: 20px; border-radius: 18px; }
 .country-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
@@ -1933,13 +2170,17 @@ figcaption { padding: 12px 14px 15px; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
 .footer { margin-top: 28px; padding: 16px 20px; border-radius: 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
-@media (max-width: 1120px) { .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1120px) {
+  .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .forecast-segments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 760px) {
   .page { width: min(100% - 28px, 1480px); padding-top: 18px; }
   .hero, .country-header { flex-direction: column; align-items: flex-start; }
   .hero-meta { text-align: left; }
   .pill { justify-self: start; }
   .metrics-grid, .weather-grid, .forecast-grid { grid-template-columns: 1fr; }
+  .forecast-key-grid, .forecast-segments { grid-template-columns: 1fr; }
   .country-section { padding: 15px; }
 }
 """
@@ -1964,7 +2205,7 @@ def metric_card(item: dict) -> str:
     return f"""
     <article class="metric-card">
       <div class="metric-name">
-        <span>{escape(item["title"])}</span><span class="metric-status {escape(result["tone"])}">（{escape(result["text"])}）</span>
+        <span>{escape(item["title"])}</span><span class="metric-status {escape(result["tone"])}">（{escape(metric_status_display_text(item, result))}）</span>
       </div>
       <div class="metric-value">{escape(value_text)}</div>
       <div class="metric-date">{escape(date_text)}</div>
@@ -2076,6 +2317,38 @@ def forecast_images() -> list[tuple[str, str, Path]]:
     ]
 
 
+def forecast_key_item(label: str, value: str, detail: str, tone: str = "") -> str:
+    value_class = f"forecast-key-value {tone}".strip()
+    return f"""
+        <div class="forecast-key-item">
+          <div class="forecast-key-label">{escape(label)}</div>
+          <div class="{escape(value_class)}">{escape(value)}</div>
+          <div class="forecast-key-detail">{escape(detail)}</div>
+        </div>
+    """
+
+
+def forecast_segment_html(segment: dict) -> str:
+    prob_html = "\n".join(
+        f'          <span class="forecast-prob">{escape(label)} <strong>{value}%</strong></span>'
+        for label, value in segment["probabilities"]
+    )
+    return f"""
+      <div class="forecast-segment">
+        <div class="forecast-segment-head">
+          <span class="forecast-period">{escape(segment["period"])}</span>
+          <span class="forecast-level">{escape(segment["level"])}</span>
+        </div>
+        <div class="forecast-probs">
+{prob_html}
+        </div>
+        <div class="forecast-segment-note">
+          强+超强 {segment["strong_plus"]}%；总厄尔尼诺 {segment["total"]}%
+        </div>
+      </div>
+    """
+
+
 def forecast_summary_panel() -> str:
     payload = latest_enso_strength_probabilities()
     if payload is None:
@@ -2090,27 +2363,49 @@ def forecast_summary_panel() -> str:
     """
 
     analysis = analyze_enso_strength_forecast(payload)
-    lines = [
-        analysis["peak_line"],
-        analysis["peak_probability_line"],
-        analysis["short_line"],
-        analysis["decline_line"],
-        analysis["conclusion_line"],
-        analysis["focus_line"],
-        analysis["sugar_impact_line"],
-    ]
-    line_html = "\n".join(
-        f'        <div class="summary-line"><strong>{escape(line.split("：", 1)[0])}：</strong>{escape(line.split("：", 1)[1])}</div>'
-        if "：" in line
-        else f'        <div class="summary-line">{escape(line)}</div>'
-        for line in lines
+    sugar_tone = sugar_tone_class(analysis["sugar_bias"])
+    key_html = "\n".join(
+        [
+            forecast_key_item(
+                "厄尔尼诺起始",
+                analysis["start"]["period"],
+                analysis["start"]["detail"],
+            ),
+            forecast_key_item(
+                "最强预测",
+                analysis["peak"]["period"],
+                (
+                    f"{analysis['peak']['level']}；强+超强 {analysis['peak']['strong_plus']}%，"
+                    f"超强 {analysis['peak']['super']}%"
+                ),
+                "warm",
+            ),
+            forecast_key_item(
+                "糖价影响",
+                analysis["sugar_bias"],
+                analysis["sugar_logic"],
+                sugar_tone,
+            ),
+        ]
     )
+    segments_html = "\n".join(forecast_segment_html(segment) for segment in analysis["segments"])
 
     return f"""
     <section class="summary-panel">
       <div class="summary-label">NOAA CPC 强度概率解读</div>
+      <div class="forecast-key-grid">
+{key_html}
+      </div>
       <div class="summary-lines">
-{line_html}
+        <div class="summary-line"><strong>分段预测：</strong>按当前月份每隔两个月抽取一个 3 个月窗口，展示中性、弱、中等、强、超强概率。</div>
+      </div>
+      <div class="forecast-segments">
+{segments_html}
+      </div>
+      <div class="summary-lines">
+        <div class="summary-line"><strong>回落：</strong>{escape(analysis["decline"]["period"])}；{escape(analysis["decline"]["detail"])}</div>
+        <div class="summary-line"><strong>预测结论：</strong>{escape(analysis["conclusion"])}</div>
+        <div class="summary-line"><strong>重点关注：</strong>{escape(analysis["focus"])}</div>
       </div>
       <div class="summary-text">{escape(analysis["method_text"])}</div>
     </section>
