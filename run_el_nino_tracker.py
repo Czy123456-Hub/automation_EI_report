@@ -1538,6 +1538,26 @@ def metric_interpretation(item: dict) -> dict:
     return classify_metric(str(item.get("kind", "")), item.get("metric"))
 
 
+def support_strength_word(rank: int) -> str:
+    if rank >= 3:
+        return "较强支持"
+    if rank == 2:
+        return "明显支持"
+    if rank == 1:
+        return "偏支持"
+    return "支持"
+
+
+def enso_support_display(result: dict, subject: str) -> str:
+    role = result.get("role")
+    rank = int(result.get("rank", 0) or 0)
+    if role == "enso_warm":
+        return f"{subject}{support_strength_word(rank)}厄尔尼诺"
+    if role == "enso_cool":
+        return f"{subject}{support_strength_word(rank)}拉尼娜"
+    return f"{subject}中性"
+
+
 def metric_status_display_text(item: dict, result: dict) -> str:
     kind = str(item.get("kind", ""))
     text = str(result.get("text", "")).replace("非常强", "超强")
@@ -1552,17 +1572,17 @@ def metric_status_display_text(item: dict, result: dict) -> str:
     if kind == "soi":
         if text == "中性":
             return "大气响应中性"
-        return text.replace("倾向", "").strip()
+        return enso_support_display(result, "大气端")
 
     if kind == "eq_soi":
         if text == "中性":
             return "赤道大气响应中性"
-        return text.replace("倾向", "").strip()
+        return enso_support_display(result, "赤道大气")
 
     if kind == "heat":
         if text == "中性":
             return "次表层热量中性"
-        return text
+        return enso_support_display(result, "次表层")
 
     if kind == "iod":
         role = result.get("role")
