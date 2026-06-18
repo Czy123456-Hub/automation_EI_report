@@ -2204,9 +2204,12 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .country-badge { align-self: flex-start; padding: 7px 11px; border-radius: 999px; background: #E7F8FF; color: var(--primary); font-size: 13px; font-weight: 700; }
 .weather-card { margin: 0; overflow: hidden; border-radius: 14px; }
 .weather-image-wrap { padding: 11px 11px 0; background: linear-gradient(180deg, #FFFFFF, #F4FCFF); }
-.weather-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF; }
-.weather-card img.weather-image-natural { aspect-ratio: auto; height: auto; }
-.forecast-grid .weather-card img { aspect-ratio: 16 / 9; }
+.weather-image-frame {
+  width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF;
+}
+.forecast-grid .weather-image-frame { aspect-ratio: 16 / 9; }
+.weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
 figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
@@ -2338,11 +2341,12 @@ def metric_summary_panel(cards: list[dict]) -> str:
 def image_card(title: str, period: str, path: Path) -> str:
     img_src = image_file_to_data_uri(path if path.exists() else None, title, period)
     image_date = f"本地图片更新时间：{file_mtime(path)}" if path.exists() else "图片日期：占位图"
-    image_class = ' class="weather-image-natural"' if path.name == "imd_rainfall_full.png" else ""
     return f"""
     <figure class="weather-card">
       <div class="weather-image-wrap">
-        <img{image_class} src="{img_src}" alt="{escape(title)}" loading="lazy" />
+        <div class="weather-image-frame">
+          <img src="{img_src}" alt="{escape(title)}" loading="lazy" />
+        </div>
       </div>
       <figcaption>
         <div class="image-title">{escape(title)}</div>
