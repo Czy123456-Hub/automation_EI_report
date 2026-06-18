@@ -156,11 +156,13 @@ CPC_WEEK1_PAGES = {
 IMD_RAINFALL_PAGE_URL = "https://mausam.imd.gov.in/responsive/rainfallinformation.php?msg=C"
 IMD_RAINFALL_LEGEND_URL = "https://mausam.imd.gov.in/responsive/img/img-in/legendsRFPer.svg"
 IMD_RAINFALL_LEGEND_OUT = ASSETS_DIR / "imd_rainfall_legend.svg"
+IMD_RAINFALL_FULL_OUT = ASSETS_DIR / "imd_rainfall_full.png"
 MAUSAM_PAGE_URL = "https://mausam.imd.gov.in/responsive/monsooninformation.php"
 MAUSAM_OUT = ASSETS_DIR / "imd_monsoon_sw.png"
 
 STATIC_BROWSER_ASSETS = [
     "imd_rainfall_cumulative.png",
+    "imd_rainfall_full.png",
     "vci_brazil_sao_paulo_sugarcane.png",
     "vci_china_guangxi_sugarcane.png",
     "vci_thailand_nakhon_phanom_sugarcane.png",
@@ -1387,23 +1389,6 @@ def image_file_to_data_uri(path: Path | None, title: str, subtitle: str) -> str:
     return f"data:{mime_type};base64,{encoded}"
 
 
-def imd_rainfall_legend_html(path: Path) -> str:
-    if path.name != "imd_rainfall_cumulative.png" or not IMD_RAINFALL_LEGEND_OUT.exists():
-        return ""
-
-    legend_src = image_file_to_data_uri(
-        IMD_RAINFALL_LEGEND_OUT,
-        "IMD Rainfall legend",
-        "Rainfall departure categories",
-    )
-    return f"""
-        <div class="weather-legend">
-          <img src="{legend_src}" alt="IMD Rainfall departure legend" loading="lazy" />
-          <div class="weather-legend-note">图例来源：IMD 官方降雨距平分类</div>
-        </div>
-    """
-
-
 def make_placeholder_svg(title: str, subtitle: str) -> str:
     svg = f"""
     <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
@@ -2093,7 +2078,7 @@ def country_weather() -> list[dict]:
             "summary": "关注季风推进、累积降雨距平差和未来一周降雨距平差。",
             "images": [
                 ("季风推进", "时间段：季风监测，具体日期以图中标注为准", ASSETS_DIR / "imd_monsoon_sw.png"),
-                ("累积降雨距平差", "时间段：累积降雨，具体起止日期以图中标注为准", ASSETS_DIR / "imd_rainfall_cumulative.png"),
+                ("累积降雨距平差", "时间段：累积降雨，具体起止日期以图中标注为准", IMD_RAINFALL_FULL_OUT),
                 ("未来一周降雨距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_india_week1_anomaly.gif"),
             ],
         },
@@ -2220,20 +2205,12 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .weather-card { margin: 0; overflow: hidden; border-radius: 14px; }
 .weather-image-wrap { padding: 11px 11px 0; background: linear-gradient(180deg, #FFFFFF, #F4FCFF); }
 .weather-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF; }
+.weather-card img.weather-image-natural { aspect-ratio: auto; height: auto; }
 .forecast-grid .weather-card img { aspect-ratio: 16 / 9; }
 figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
-.weather-legend {
-  margin: 9px 11px 4px; padding: 7px 8px; border: 1px solid var(--border);
-  border-radius: 8px; background: #FFFFFF;
-}
-.weather-card .weather-legend img {
-  width: 100%; height: auto; aspect-ratio: auto; object-fit: contain;
-  border: 0; border-radius: 0; background: transparent;
-}
-.weather-legend-note { margin-top: 5px; color: #8AA9B8; font-size: 10px; line-height: 1.35; }
 .footer { margin-top: 28px; padding: 16px 20px; border-radius: 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 @media (max-width: 1120px) {
   .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2361,13 +2338,12 @@ def metric_summary_panel(cards: list[dict]) -> str:
 def image_card(title: str, period: str, path: Path) -> str:
     img_src = image_file_to_data_uri(path if path.exists() else None, title, period)
     image_date = f"本地图片更新时间：{file_mtime(path)}" if path.exists() else "图片日期：占位图"
-    legend_html = imd_rainfall_legend_html(path)
+    image_class = ' class="weather-image-natural"' if path.name == "imd_rainfall_full.png" else ""
     return f"""
     <figure class="weather-card">
       <div class="weather-image-wrap">
-        <img src="{img_src}" alt="{escape(title)}" loading="lazy" />
+        <img{image_class} src="{img_src}" alt="{escape(title)}" loading="lazy" />
       </div>
-      {legend_html}
       <figcaption>
         <div class="image-title">{escape(title)}</div>
         <div class="image-period">{escape(period)}</div>

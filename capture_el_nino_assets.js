@@ -12,6 +12,9 @@ if (!assetsDir) {
 fs.mkdirSync(assetsDir, { recursive: true });
 
 const IMD_PAGE_URL = "https://mausam.imd.gov.in/responsive/rainfallinformation.php?msg=C";
+const IMD_RAINFALL_MAP_NAME = "imd_rainfall_cumulative.png";
+const IMD_RAINFALL_LEGEND_NAME = "imd_rainfall_legend.svg";
+const IMD_RAINFALL_FULL_NAME = "imd_rainfall_full.png";
 const VCI_PAGE_URL =
   "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot";
 
@@ -75,6 +78,18 @@ const VCI_TARGETS = [
     outName: "vci_thailand_nakhon_phanom_sugarcane.png",
   },
 ];
+
+function fileToDataUri(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeType =
+    ext === ".svg" ? "image/svg+xml" :
+    ext === ".png" ? "image/png" :
+    ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" :
+    ext === ".gif" ? "image/gif" :
+    "application/octet-stream";
+  const encoded = fs.readFileSync(filePath).toString("base64");
+  return `data:${mimeType};base64,${encoded}`;
+}
 
 async function optionList(selectLocator) {
   return await selectLocator.locator("option").evaluateAll((options) =>
@@ -212,7 +227,7 @@ async function screenshotVciPlotArea(page, outPath) {
 }
 
 async function captureImdRainfall(browser) {
-  const outPath = path.join(assetsDir, "imd_rainfall_cumulative.png");
+  const outPath = path.join(assetsDir, IMD_RAINFALL_MAP_NAME);
   const context = await browser.newContext({ viewport: { width: 1600, height: 1100 } });
   const page = await context.newPage();
   try {
@@ -224,6 +239,98 @@ async function captureImdRainfall(browser) {
     }
     fs.writeFileSync(outPath, Buffer.from(dataUrl.split(",", 2)[1], "base64"));
     console.log(`IMD Rainfall cumulative saved: ${outPath}`);
+  } finally {
+    await context.close();
+  }
+}
+
+async function makeImdRainfallFullImage(browser) {
+  const mapPath = path.join(assetsDir, IMD_RAINFALL_MAP_NAME);
+  const legendPath = path.join(assetsDir, IMD_RAINFALL_LEGEND_NAME);
+  const outPath = path.join(assetsDir, IMD_RAINFALL_FULL_NAME);
+
+  if (!fs.existsSync(mapPath)) {
+    throw new Error(`缺少 IMD 降雨地图：${mapPath}`);
+  }
+  if (!fs.existsSync(legendPath)) {
+    throw new Error(`缺少 IMD 降雨图例：${legendPath}`);
+  }
+
+  const panelWidth = 1280;
+  const legendWidth = 790;
+  const mapSrc = fileToDataUri(mapPath);
+  const legendSrc = fileToDataUri(legendPath);
+  const context = await browser.newContext({
+    viewport: { width: panelWidth, height: 1800 },
+    deviceScaleFactor: 1,
+  });
+  const page = await context.newPage();
+  try {
+    await page.setContent(`
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+          }
+          #shot {
+            width: ${panelWidth}px;
+            background: #ffffff;
+            overflow: hidden;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          .legend-wrap {
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 22px 10px 6px;
+            background: #ffffff;
+          }
+          .legend-wrap img {
+            display: block;
+            width: ${legendWidth}px;
+            max-width: 100%;
+            height: auto;
+          }
+          .map-wrap {
+            width: 100%;
+            background: #ffffff;
+          }
+          .map-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #ffffff;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="shot">
+          <div class="legend-wrap">
+            <img src="${legendSrc}" alt="IMD rainfall legend">
+          </div>
+          <div class="map-wrap">
+            <img src="${mapSrc}" alt="IMD rainfall map">
+          </div>
+        </div>
+      </body>
+      </html>
+    `, { waitUntil: "load" });
+    await page.waitForFunction(() =>
+      Array.from(document.images).every((img) => img.complete && img.naturalWidth > 0)
+    );
+    await page.locator("#shot").screenshot({
+      path: outPath,
+      animations: "disabled",
+    });
+    console.log(`IMD Rainfall full image saved: ${outPath}`);
   } finally {
     await context.close();
   }
@@ -263,6 +370,9 @@ async function captureVciPlots(browser) {
   try {
     await captureImdRainfall(browser).catch((err) => {
       console.error(`WARNING: IMD Rainfall capture failed: ${err.message || err}`);
+    });
+    await makeImdRainfallFullImage(browser).catch((err) => {
+      console.error(`WARNING: IMD Rainfall full image failed: ${err.message || err}`);
     });
     await captureVciPlots(browser).catch((err) => {
       console.error(`WARNING: VCI capture failed: ${err.message || err}`);
