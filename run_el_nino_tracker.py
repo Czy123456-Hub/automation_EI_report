@@ -2226,7 +2226,7 @@ figcaption { padding: 12px 14px 15px; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
 .weather-legend {
-  margin: 9px 0 4px; padding: 7px 8px; border: 1px solid var(--border);
+  margin: 9px 11px 4px; padding: 7px 8px; border: 1px solid var(--border);
   border-radius: 8px; background: #FFFFFF;
 }
 .weather-card .weather-legend img {
@@ -2367,11 +2367,11 @@ def image_card(title: str, period: str, path: Path) -> str:
       <div class="weather-image-wrap">
         <img src="{img_src}" alt="{escape(title)}" loading="lazy" />
       </div>
+      {legend_html}
       <figcaption>
         <div class="image-title">{escape(title)}</div>
         <div class="image-period">{escape(period)}</div>
         <div class="image-date">{escape(image_date)}</div>
-        {legend_html}
       </figcaption>
     </figure>
     """
