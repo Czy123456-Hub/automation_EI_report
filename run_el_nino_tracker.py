@@ -153,6 +153,9 @@ CPC_WEEK1_PAGES = {
     },
 }
 
+IMD_RAINFALL_PAGE_URL = "https://mausam.imd.gov.in/responsive/rainfallinformation.php?msg=C"
+IMD_RAINFALL_LEGEND_URL = "https://mausam.imd.gov.in/responsive/img/img-in/legendsRFPer.svg"
+IMD_RAINFALL_LEGEND_OUT = ASSETS_DIR / "imd_rainfall_legend.svg"
 MAUSAM_PAGE_URL = "https://mausam.imd.gov.in/responsive/monsooninformation.php"
 MAUSAM_OUT = ASSETS_DIR / "imd_monsoon_sw.png"
 
@@ -765,6 +768,22 @@ def download_mausam_sw_monsoon() -> None:
         warn(f"Mausam SW Monsoon 图片下载失败，保留已有图片：{exc}")
 
 
+def download_imd_rainfall_legend() -> None:
+    try:
+        svg_content = http_get_bytes(
+            IMD_RAINFALL_LEGEND_URL,
+            headers={**BROWSER_HEADERS, "Referer": IMD_RAINFALL_PAGE_URL},
+        )
+        if b"<svg" not in svg_content[:2048].lower():
+            raise ValueError("IMD 图例地址没有返回有效 SVG 文件")
+
+        IMD_RAINFALL_LEGEND_OUT.parent.mkdir(parents=True, exist_ok=True)
+        IMD_RAINFALL_LEGEND_OUT.write_bytes(svg_content)
+        print(f"IMD Rainfall 图例下载成功：{IMD_RAINFALL_LEGEND_OUT}")
+    except Exception as exc:
+        warn(f"IMD Rainfall 图例下载失败，保留已有图例：{exc}")
+
+
 def find_enso_strength_probabilities_url(page_url: str, html_text: str | None = None) -> str:
     if html_text is None:
         html_text = fetch_text(page_url, headers={**BROWSER_HEADERS, "Referer": page_url})
@@ -1366,6 +1385,23 @@ def image_file_to_data_uri(path: Path | None, title: str, subtitle: str) -> str:
 
     encoded = base64.b64encode(content).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
+
+
+def imd_rainfall_legend_html(path: Path) -> str:
+    if path.name != "imd_rainfall_cumulative.png" or not IMD_RAINFALL_LEGEND_OUT.exists():
+        return ""
+
+    legend_src = image_file_to_data_uri(
+        IMD_RAINFALL_LEGEND_OUT,
+        "IMD Rainfall legend",
+        "Rainfall departure categories",
+    )
+    return f"""
+        <div class="weather-legend">
+          <img src="{legend_src}" alt="IMD Rainfall departure legend" loading="lazy" />
+          <div class="weather-legend-note">图例来源：IMD 官方降雨距平分类</div>
+        </div>
+    """
 
 
 def make_placeholder_svg(title: str, subtitle: str) -> str:
@@ -2189,6 +2225,15 @@ figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
+.weather-legend {
+  margin: 9px 0 4px; padding: 7px 8px; border: 1px solid var(--border);
+  border-radius: 8px; background: #FFFFFF;
+}
+.weather-card .weather-legend img {
+  width: 100%; height: auto; aspect-ratio: auto; object-fit: contain;
+  border: 0; border-radius: 0; background: transparent;
+}
+.weather-legend-note { margin-top: 5px; color: #8AA9B8; font-size: 10px; line-height: 1.35; }
 .footer { margin-top: 28px; padding: 16px 20px; border-radius: 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 @media (max-width: 1120px) {
   .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2316,6 +2361,7 @@ def metric_summary_panel(cards: list[dict]) -> str:
 def image_card(title: str, period: str, path: Path) -> str:
     img_src = image_file_to_data_uri(path if path.exists() else None, title, period)
     image_date = f"本地图片更新时间：{file_mtime(path)}" if path.exists() else "图片日期：占位图"
+    legend_html = imd_rainfall_legend_html(path)
     return f"""
     <figure class="weather-card">
       <div class="weather-image-wrap">
@@ -2325,6 +2371,7 @@ def image_card(title: str, period: str, path: Path) -> str:
         <div class="image-title">{escape(title)}</div>
         <div class="image-period">{escape(period)}</div>
         <div class="image-date">{escape(image_date)}</div>
+        {legend_html}
       </figcaption>
     </figure>
     """
@@ -2553,6 +2600,7 @@ def main() -> None:
     download_forecast_images()
     download_cpc_images()
     download_mausam_sw_monsoon()
+    download_imd_rainfall_legend()
     run_browser_capture()
     note_browser_assets()
 
