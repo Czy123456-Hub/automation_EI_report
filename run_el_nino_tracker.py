@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import escape, unescape
 from pathlib import Path
 from urllib.parse import quote, urljoin
@@ -27,6 +27,11 @@ OUTPUT_HTML = Path(os.environ.get("EL_NINO_OUTPUT_HTML", OUTPUT_DIR / "厄尔尼
 if not OUTPUT_HTML.is_absolute():
     OUTPUT_HTML = ROOT / OUTPUT_HTML
 BROWSER_CAPTURE_SCRIPT = ROOT / "capture_el_nino_assets.js"
+HISTORY_DAYS = 30
+HISTORY_DIR = Path(os.environ.get("EL_NINO_HISTORY_DIR", ROOT / "history"))
+if not HISTORY_DIR.is_absolute():
+    HISTORY_DIR = ROOT / HISTORY_DIR
+HISTORY_MANIFEST_PATH = HISTORY_DIR / "manifest.json"
 
 METRICS_PAYLOAD_JSON_PATH = ASSETS_DIR / "enso_metrics_for_html.json"
 METRICS_LIST_JSON_PATH = ASSETS_DIR / "enso_metrics_latest.json"
@@ -2112,6 +2117,163 @@ def country_weather() -> list[dict]:
     ]
 
 
+def image_history_key(path: Path) -> str:
+    return re.sub(r"[^a-z0-9_]+", "_", path.stem.lower()).strip("_")
+
+
+def weather_image_specs() -> list[dict]:
+    specs = []
+    for section in country_weather():
+        for title, period, path in section["images"]:
+            specs.append(
+                {
+                    "key": image_history_key(path),
+                    "title": title,
+                    "period": period,
+                    "path": path,
+                    "filename": path.name,
+                    "country": section["country"],
+                }
+            )
+    return specs
+
+
+def date_label_zh(value) -> str:
+    return f"{value.month}月{value.day}日"
+
+
+def relative_url_for_html(path: Path) -> str:
+    rel = os.path.relpath(path, OUTPUT_HTML.parent)
+    return rel.replace(os.sep, "/")
+
+
+def prune_weather_history(today) -> None:
+    if not HISTORY_DIR.exists():
+        return
+
+    cutoff = today - timedelta(days=HISTORY_DAYS)
+    for item in HISTORY_DIR.iterdir():
+        if not item.is_dir():
+            continue
+        try:
+            item_date = datetime.strptime(item.name, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if item_date < cutoff:
+            shutil.rmtree(item)
+
+
+def save_daily_weather_history() -> None:
+    today = now_beijing().date()
+    updated_at = now_beijing().strftime("%Y-%m-%d %H:%M")
+    snapshot_dir = HISTORY_DIR / today.isoformat()
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    images = {}
+    for spec in weather_image_specs():
+        source = spec["path"]
+        if not source.exists():
+            continue
+        target = snapshot_dir / spec["filename"]
+        shutil.copy2(source, target)
+        images[spec["key"]] = {
+            "title": spec["title"],
+            "country": spec["country"],
+            "file": spec["filename"],
+            "source_updated_at_beijing": file_mtime(source),
+        }
+
+    (snapshot_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "date": today.isoformat(),
+                "date_label": date_label_zh(today),
+                "updated_at_beijing": updated_at,
+                "images": images,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prune_weather_history(today)
+    write_weather_history_manifest(today)
+
+
+def write_weather_history_manifest(today) -> None:
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    snapshots = []
+    for offset in range(0, HISTORY_DAYS + 1):
+        day = today - timedelta(days=offset)
+        day_dir = HISTORY_DIR / day.isoformat()
+        if not day_dir.exists():
+            continue
+        manifest_path = day_dir / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            manifest = {}
+        snapshots.append(
+            {
+                "date": day.isoformat(),
+                "date_label": date_label_zh(day),
+                "offset": offset,
+                "updated_at_beijing": manifest.get("updated_at_beijing", ""),
+                "available_images": len(manifest.get("images", {})),
+            }
+        )
+
+    HISTORY_MANIFEST_PATH.write_text(
+        json.dumps(
+            {
+                "current_date": today.isoformat(),
+                "current_date_label": date_label_zh(today),
+                "history_days": HISTORY_DAYS,
+                "snapshots": snapshots,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def build_weather_history_data() -> dict:
+    today = now_beijing().date()
+    specs = weather_image_specs()
+    options = []
+    for offset in range(1, HISTORY_DAYS + 1):
+        day = today - timedelta(days=offset)
+        day_dir = HISTORY_DIR / day.isoformat()
+        images = {}
+        for spec in specs:
+            candidate = day_dir / spec["filename"]
+            if candidate.exists():
+                images[spec["key"]] = relative_url_for_html(candidate)
+        options.append(
+            {
+                "offset": offset,
+                "date": day.isoformat(),
+                "date_label": date_label_zh(day),
+                "label": f"T-{offset}｜{date_label_zh(day)}",
+                "available_count": len(images),
+                "images": images,
+            }
+        )
+
+    return {
+        "current": {
+            "date": today.isoformat(),
+            "date_label": date_label_zh(today),
+            "label": f"T｜{date_label_zh(today)}",
+        },
+        "options": options,
+        "placeholder": make_placeholder_svg("历史对比图", "该日期暂无保存图片，后续运行会自动累积"),
+    }
+
+
 STYLE = """
 :root {
   --page-bg: #F3FBFF;
@@ -2202,14 +2364,43 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .country-header h3 { margin: 0 0 6px; color: var(--primary); font-size: 24px; }
 .country-header p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .country-badge { align-self: flex-start; padding: 7px 11px; border-radius: 999px; background: #E7F8FF; color: var(--primary); font-size: 13px; font-weight: 700; }
+.history-toolbar {
+  margin: 0 0 18px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,.95);
+  box-shadow: 0 10px 24px rgba(18,115,156,.06);
+}
+.history-toolbar-title { color: var(--primary); font-size: 16px; font-weight: 850; }
+.history-toolbar-subtitle { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.history-select-wrap { display: flex; align-items: center; gap: 8px; color: #2E8DB4; font-size: 13px; font-weight: 800; }
+.history-select {
+  min-width: 160px; padding: 8px 11px; border-radius: 10px; border: 1px solid var(--border);
+  color: var(--primary); background: #FFFFFF; font: inherit; font-weight: 850;
+}
+.history-select-wrap.global { font-size: 14px; }
+.history-select-wrap.global .history-select { min-width: 190px; padding: 10px 12px; }
 .weather-card { margin: 0; overflow: hidden; border-radius: 14px; }
 .weather-image-wrap { padding: 11px 11px 0; background: linear-gradient(180deg, #FFFFFF, #F4FCFF); }
 .weather-image-frame {
-  width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
+  position: relative; width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
   overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF;
 }
 .forecast-grid .weather-image-frame { aspect-ratio: 16 / 9; }
 .weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.image-badge {
+  position: absolute; left: 10px; top: 10px; padding: 5px 8px; border-radius: 999px;
+  background: rgba(255,255,255,.92); color: var(--primary); border: 1px solid var(--border);
+  box-shadow: 0 6px 16px rgba(18,115,156,.10); font-size: 11px; line-height: 1; font-weight: 900;
+}
+.history-compare { margin: 10px 11px 0; padding-top: 10px; border-top: 1px solid var(--border); }
+.history-compare-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; align-items: center; }
+.history-compare-title { color: var(--primary); font-size: 12px; font-weight: 900; }
+.history-compare-date { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 750; }
+.card-history-select-wrap { display: flex; align-items: center; gap: 6px; color: #2E8DB4; font-size: 11px; font-weight: 850; white-space: nowrap; }
+.card-history-select {
+  min-width: 128px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border);
+  color: var(--primary); background: #FFFFFF; font: inherit; font-weight: 850;
+}
+.history-image-frame { background: #FBFEFF; }
 figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
@@ -2226,6 +2417,10 @@ figcaption { padding: 12px 14px 15px; }
   .pill { justify-self: start; }
   .metrics-grid, .weather-grid, .forecast-grid { grid-template-columns: 1fr; }
   .forecast-key-grid, .forecast-segments { grid-template-columns: 1fr; }
+  .history-toolbar { flex-direction: column; align-items: flex-start; }
+  .history-select-wrap { width: 100%; justify-content: space-between; }
+  .history-compare-head { align-items: flex-start; flex-direction: column; }
+  .card-history-select-wrap { width: 100%; justify-content: space-between; }
   .country-section { padding: 15px; }
 }
 """
@@ -2338,14 +2533,62 @@ def metric_summary_panel(cards: list[dict]) -> str:
     """
 
 
-def image_card(title: str, period: str, path: Path) -> str:
+def history_options_html(history_data: dict) -> str:
+    return "\n".join(
+        f'<option value="{item["offset"]}">{escape(item["label"])}{"（暂无）" if item["available_count"] == 0 else ""}</option>'
+        for item in history_data["options"]
+    )
+
+
+def history_compare_html(history_key: str | None, history_data: dict | None = None) -> str:
+    if not history_key:
+        return ""
+    options = history_options_html(history_data) if history_data else ""
+    return f"""
+      <div class="history-compare" data-history-key="{escape(history_key)}">
+        <div class="history-compare-head">
+          <div>
+            <span class="history-compare-title">历史对比</span>
+            <span class="history-compare-date" data-history-date>等待选择日期</span>
+          </div>
+          <label class="card-history-select-wrap">
+            <span>单图日期</span>
+            <select class="card-history-select" data-card-history-select aria-label="选择单张天气图历史对比日期">
+              {options}
+            </select>
+          </label>
+        </div>
+        <div class="weather-image-frame history-image-frame">
+          <img data-history-img src="{make_placeholder_svg("历史对比图", "该日期暂无保存图片")}" alt="历史对比图" loading="lazy" />
+          <span class="image-badge" data-history-badge>历史</span>
+        </div>
+      </div>
+    """
+
+
+def image_card(
+    title: str,
+    period: str,
+    path: Path,
+    *,
+    history_key: str | None = None,
+    current_date_label: str = "",
+    history_data: dict | None = None,
+) -> str:
     img_src = image_file_to_data_uri(path if path.exists() else None, title, period)
     image_date = f"本地图片更新时间：{file_mtime(path)}" if path.exists() else "图片日期：占位图"
+    current_badge = (
+        f'<span class="image-badge">{escape(current_date_label)}</span>'
+        if current_date_label
+        else ""
+    )
+    history_compare = history_compare_html(history_key, history_data)
     return f"""
     <figure class="weather-card">
       <div class="weather-image-wrap">
         <div class="weather-image-frame">
           <img src="{img_src}" alt="{escape(title)}" loading="lazy" />
+          {current_badge}
         </div>
       </div>
       <figcaption>
@@ -2353,6 +2596,7 @@ def image_card(title: str, period: str, path: Path) -> str:
         <div class="image-period">{escape(period)}</div>
         <div class="image-date">{escape(image_date)}</div>
       </figcaption>
+      {history_compare}
     </figure>
     """
 
@@ -2476,8 +2720,37 @@ def forecast_section() -> str:
     """
 
 
-def country_section(section: dict) -> str:
-    cards = "\n".join(image_card(title, period, path) for title, period, path in section["images"])
+def history_controls(history_data: dict) -> str:
+    options = history_options_html(history_data)
+    return f"""
+    <section class="history-toolbar">
+      <div>
+        <div class="history-toolbar-title">天气图历史对比</div>
+        <div class="history-toolbar-subtitle">当前：{escape(history_data["current"]["label"])}；历史范围：T-1 到 T-30。</div>
+      </div>
+      <label class="history-select-wrap global">
+        <span>全部对比日期</span>
+        <select class="history-select" id="history-day-select" aria-label="选择历史对比日期">
+          {options}
+        </select>
+      </label>
+    </section>
+    """
+
+
+def country_section(section: dict, history_data: dict) -> str:
+    current_label = history_data["current"]["label"]
+    cards = "\n".join(
+        image_card(
+            title,
+            period,
+            path,
+            history_key=image_history_key(path),
+            current_date_label=current_label,
+            history_data=history_data,
+        )
+        for title, period, path in section["images"]
+    )
     return f"""
     <section class="country-section">
       <div class="country-header">
@@ -2494,11 +2767,77 @@ def country_section(section: dict) -> str:
     """
 
 
+def history_script(history_data: dict) -> str:
+    payload = json.dumps(history_data, ensure_ascii=False).replace("</", "<\\/")
+    return f"""
+  <script type="application/json" id="weather-history-data">{payload}</script>
+  <script>
+    (() => {{
+      const dataNode = document.getElementById('weather-history-data');
+      const select = document.getElementById('history-day-select');
+      if (!dataNode || !select) return;
+      const data = JSON.parse(dataNode.textContent || '{{}}');
+      const options = Array.isArray(data.options) ? data.options : [];
+      const placeholder = data.placeholder;
+
+      function optionFor(offsetValue) {{
+        const offset = Number(offsetValue || 1);
+        return options.find((entry) => Number(entry.offset) === offset) || options[0];
+      }}
+
+      function updateCard(card, item) {{
+        if (!card || !item) return;
+        const key = card.getAttribute('data-history-key');
+        const img = card.querySelector('[data-history-img]');
+        const dateNode = card.querySelector('[data-history-date]');
+        const badge = card.querySelector('[data-history-badge]');
+        const src = item.images && item.images[key];
+        if (img) {{
+          img.src = src || placeholder;
+          img.alt = src ? `历史对比图 ${{item.label}}` : `暂无历史对比图 ${{item.label}}`;
+        }}
+        if (dateNode) {{
+          dateNode.textContent = src
+            ? `${{item.label}}｜${{item.date}}`
+            : `${{item.label}}｜暂无保存图片`;
+        }}
+        if (badge) {{
+          badge.textContent = src ? item.label : `${{item.label}} 暂无`;
+        }}
+      }}
+
+      function applyHistory(offsetValue) {{
+        const item = optionFor(offsetValue);
+        if (!item) return;
+
+        document.querySelectorAll('[data-history-key]').forEach((card) => {{
+          const localSelect = card.querySelector('[data-card-history-select]');
+          if (localSelect) localSelect.value = String(item.offset);
+          updateCard(card, item);
+        }});
+      }}
+
+      select.addEventListener('change', () => applyHistory(select.value));
+      document.querySelectorAll('[data-card-history-select]').forEach((localSelect) => {{
+        localSelect.addEventListener('change', () => {{
+          const item = optionFor(localSelect.value);
+          const card = localSelect.closest('[data-history-key]');
+          updateCard(card, item);
+        }});
+      }});
+      applyHistory(select.value || '1');
+    }})();
+  </script>
+    """
+
+
 def strip_trailing_line_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
 
 
-def build_html(metrics: list[dict]) -> str:
+def build_html(metrics: list[dict], history_data: dict | None = None) -> str:
+    if history_data is None:
+        history_data = build_weather_history_data()
     generated_at = now_beijing().strftime("%Y-%m-%d %H:%M")
     metrics_saved_at = format_timestamp_beijing(METRICS_PAYLOAD_JSON_PATH.stat().st_mtime)
 
@@ -2506,7 +2845,9 @@ def build_html(metrics: list[dict]) -> str:
     metric_cards = "\n".join(metric_card(item) for item in metric_items)
     metric_summary = metric_summary_panel(metric_items)
     forecast_html = forecast_section()
-    country_sections = "\n".join(country_section(section) for section in country_weather())
+    weather_history_controls = history_controls(history_data)
+    country_sections = "\n".join(country_section(section, history_data) for section in country_weather())
+    history_js = history_script(history_data)
 
     warning_html = ""
     if warnings:
@@ -2558,6 +2899,8 @@ def build_html(metrics: list[dict]) -> str:
       <span class="rule"></span>
     </div>
 
+    {weather_history_controls}
+
     {country_sections}
 
     {warning_html}
@@ -2566,6 +2909,7 @@ def build_html(metrics: list[dict]) -> str:
       说明：图片的具体统计日期和预报有效期以图中标注为准。
     </div>
   </main>
+  {history_js}
 </body>
 </html>
 """
@@ -2583,8 +2927,10 @@ def main() -> None:
     download_imd_rainfall_legend()
     run_browser_capture()
     note_browser_assets()
+    save_daily_weather_history()
+    history_data = build_weather_history_data()
 
-    html = strip_trailing_line_whitespace(build_html(metrics))
+    html = strip_trailing_line_whitespace(build_html(metrics, history_data))
     OUTPUT_HTML.write_text(html, encoding="utf-8")
 
     print(f"HTML 已生成：{OUTPUT_HTML}")
