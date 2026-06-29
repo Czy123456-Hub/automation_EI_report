@@ -218,13 +218,25 @@ def is_valid_value(value: float) -> bool:
     return -90 < value < 900
 
 
+def attach_previous_metric(records: list[dict]) -> dict:
+    if not records:
+        raise ValueError("没有可用指标数据")
+
+    latest = dict(records[-1])
+    if len(records) >= 2:
+        previous = dict(records[-2])
+        previous.pop("previous", None)
+        latest["previous"] = previous
+    return latest
+
+
 def latest_from_psl_standard(data_url: str, name: str) -> dict:
     text = fetch_text(data_url)
     tokens = text.replace("\n", " ").split()
 
     start_year = int(tokens[0])
     end_year = int(tokens[1])
-    latest = None
+    records = []
     i = 2
 
     while i + 12 < len(tokens):
@@ -238,19 +250,21 @@ def latest_from_psl_standard(data_url: str, name: str) -> dict:
         for month in range(1, 13):
             value = float(tokens[i + month])
             if is_valid_value(value):
-                latest = {
-                    "name": name,
-                    "time": f"{year}-{month:02d}",
-                    "value": value,
-                    "unit": "°C",
-                }
+                records.append(
+                    {
+                        "name": name,
+                        "time": f"{year}-{month:02d}",
+                        "value": value,
+                        "unit": "°C",
+                    }
+                )
 
         i += 13
 
-    if latest is None:
+    if not records:
         raise ValueError(f"{name} 没有找到有效数据：{data_url}")
 
-    return latest
+    return attach_previous_metric(records)
 
 
 def extract_section_between(text: str, start_marker: str, end_marker: str | None = None) -> str:
@@ -287,7 +301,7 @@ def latest_from_cpc_year_12_file(
         r"((?:" + value_pattern + r"\s*){12})"
     )
 
-    latest = None
+    records = []
     for match in row_pattern.finditer(text):
         year = int(match.group(1))
         values = [float(x) for x in re.findall(value_pattern, match.group(2))]
@@ -296,17 +310,19 @@ def latest_from_cpc_year_12_file(
 
         for month, value in enumerate(values, start=1):
             if is_valid_value(value):
-                latest = {
-                    "name": name,
-                    "time": f"{year}-{month:02d}",
-                    "value": value,
-                    "unit": unit,
-                }
+                records.append(
+                    {
+                        "name": name,
+                        "time": f"{year}-{month:02d}",
+                        "value": value,
+                        "unit": unit,
+                    }
+                )
 
-    if latest is None:
+    if not records:
         raise ValueError(f"{name} 没有找到有效数据：{data_url}")
 
-    return latest
+    return attach_previous_metric(records)
 
 
 def latest_heat_content(data_url: str, region_column: str) -> dict:
@@ -328,7 +344,7 @@ def latest_heat_content(data_url: str, region_column: str) -> dict:
         r"(" + value_pattern + r")"
     )
 
-    latest = None
+    records = []
     region_index = column_map[region_column]
     for match in row_pattern.finditer(text):
         year = int(match.group(1))
@@ -341,17 +357,19 @@ def latest_heat_content(data_url: str, region_column: str) -> dict:
         value = values[region_index]
 
         if 1 <= month <= 12 and is_valid_value(value):
-            latest = {
-                "name": f"HEATCENTRA 上层0-300m温度距平 ({region_column})",
-                "time": f"{year}-{month:02d}",
-                "value": value,
-                "unit": "°C",
-            }
+            records.append(
+                {
+                    "name": f"HEATCENTRA 上层0-300m温度距平 ({region_column})",
+                    "time": f"{year}-{month:02d}",
+                    "value": value,
+                    "unit": "°C",
+                }
+            )
 
-    if latest is None:
+    if not records:
         raise ValueError("没有找到有效的 HEATCENTRA 数据")
 
-    return latest
+    return attach_previous_metric(records)
 
 
 def latest_iod_weekly() -> dict:
@@ -364,21 +382,23 @@ def latest_iod_weekly() -> dict:
         if not rows:
             raise ValueError("IOD 原始 txt 没有解析到数据")
 
-        latest = None
+        records = []
         for _start_date, end_date, value_text in rows:
             value = float(value_text)
             if is_valid_value(value):
-                latest = {
-                    "name": "IOD weekly",
-                    "time": datetime.strptime(end_date, "%Y%m%d").date().isoformat(),
-                    "value": value,
-                    "unit": "°C",
-                }
+                records.append(
+                    {
+                        "name": "IOD weekly",
+                        "time": datetime.strptime(end_date, "%Y%m%d").date().isoformat(),
+                        "value": value,
+                        "unit": "°C",
+                    }
+                )
 
-        if latest is None:
+        if not records:
             raise ValueError("IOD 原始 txt 没有有效值")
 
-        return latest
+        return attach_previous_metric(records)
 
     except Exception:
         html = fetch_text(IOD_SUMMARY_URL, headers=BOM_HEADERS)
@@ -432,7 +452,7 @@ def latest_weekly_nino34(data_url: str) -> dict:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     nino34_col = detect_weekly_nino34_column(lines)
 
-    latest = None
+    records = []
     for line in lines:
         parts = line.split()
         if len(parts) < 5:
@@ -453,17 +473,19 @@ def latest_weekly_nino34(data_url: str) -> dict:
             continue
 
         if is_valid_value(value):
-            latest = {
-                "name": "Weekly Relative Niño 3.4 anomaly",
-                "time": date_value.isoformat(),
-                "value": value,
-                "unit": "°C",
-            }
+            records.append(
+                {
+                    "name": "Weekly Relative Niño 3.4 anomaly",
+                    "time": date_value.isoformat(),
+                    "value": value,
+                    "unit": "°C",
+                }
+            )
 
-    if latest is None:
+    if not records:
         raise ValueError("没有解析到有效的 weekly Niño 3.4 数据")
 
-    return latest
+    return attach_previous_metric(records)
 
 
 def metric_source(metric_name: str) -> str:
@@ -494,17 +516,25 @@ def save_metrics(results: list[dict]) -> list[dict]:
     metric_results = []
     for idx, item in enumerate(results, start=1):
         metric_name = str(item.get("name", "")).strip()
-        metric_results.append(
-            {
-                "order": idx,
-                "name": metric_name,
-                "time": str(item.get("time", "")).strip(),
-                "period_type": metric_period_type(metric_name),
-                "value": float(item["value"]) if item.get("value") is not None else None,
-                "unit": str(item.get("unit", "")).strip(),
-                "source": str(item.get("source", "") or metric_source(metric_name)),
+        metric_item = {
+            "order": idx,
+            "name": metric_name,
+            "time": str(item.get("time", "")).strip(),
+            "period_type": metric_period_type(metric_name),
+            "value": float(item["value"]) if item.get("value") is not None else None,
+            "unit": str(item.get("unit", "")).strip(),
+            "source": str(item.get("source", "") or metric_source(metric_name)),
+        }
+
+        previous = item.get("previous")
+        if isinstance(previous, dict) and previous.get("value") is not None:
+            metric_item["previous"] = {
+                "time": str(previous.get("time", "")).strip(),
+                "value": float(previous["value"]),
+                "unit": str(previous.get("unit", metric_item["unit"]) or "").strip(),
             }
-        )
+
+        metric_results.append(metric_item)
 
     payload = {
         "saved_at": now_beijing().strftime("%Y-%m-%d %H:%M:%S"),
@@ -521,13 +551,39 @@ def save_metrics(results: list[dict]) -> list[dict]:
         encoding="utf-8",
     )
 
+    fieldnames = [
+        "order",
+        "name",
+        "time",
+        "period_type",
+        "value",
+        "unit",
+        "previous_time",
+        "previous_value",
+        "previous_unit",
+        "source",
+    ]
     with METRICS_CSV_PATH.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(
             file,
-            fieldnames=["order", "name", "time", "period_type", "value", "unit", "source"],
+            fieldnames=fieldnames,
         )
         writer.writeheader()
-        writer.writerows(metric_results)
+        for item in metric_results:
+            previous = item.get("previous") if isinstance(item.get("previous"), dict) else {}
+            row = {
+                "order": item.get("order", ""),
+                "name": item.get("name", ""),
+                "time": item.get("time", ""),
+                "period_type": item.get("period_type", ""),
+                "value": item.get("value", ""),
+                "unit": item.get("unit", ""),
+                "previous_time": previous.get("time", ""),
+                "previous_value": previous.get("value", ""),
+                "previous_unit": previous.get("unit", ""),
+                "source": item.get("source", ""),
+            }
+            writer.writerow(row)
 
     return metric_results
 
@@ -1433,6 +1489,29 @@ def format_value(metric: dict | None) -> str:
     return f"{value_text} {unit}".strip()
 
 
+def metric_previous_compare_text(metric: dict | None) -> str:
+    if not metric or metric.get("value") is None:
+        return ""
+
+    previous = metric.get("previous")
+    if not isinstance(previous, dict) or previous.get("value") is None:
+        return ""
+
+    try:
+        current_value = float(metric["value"])
+        previous_value = float(previous["value"])
+    except (TypeError, ValueError):
+        return ""
+
+    unit = str(metric.get("unit", "") or previous.get("unit", "") or "").strip()
+    if previous_value == 0:
+        change_text = "N/A"
+    else:
+        change_text = f"{((current_value - previous_value) / abs(previous_value)) * 100:+.1f}%"
+    previous_text = format_value({"value": previous_value, "unit": unit})
+    return f"环比 {change_text}；上期值 {previous_text}"
+
+
 def format_time_zh(time_text: str | None) -> str:
     time_text = str(time_text or "").strip()
     if not time_text:
@@ -2318,7 +2397,11 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .metric-status.warm { color: #9A5A17; }
 .metric-status.cool { color: #166D8F; }
 .metric-status.neutral { color: #587482; }
-.metric-value { margin: 8px 0 12px; color: var(--primary); font-size: clamp(31px, 3vw, 44px); line-height: 1; font-weight: 850; }
+.metric-value {
+  margin: 8px 0 12px; color: var(--primary); line-height: 1; font-weight: 850; text-align: center;
+}
+.metric-current-value { display: block; font-size: clamp(31px, 3vw, 44px); }
+.metric-previous-value { display: block; margin-top: 7px; color: #6C8FA1; font-size: 12px; line-height: 1.35; font-weight: 850; }
 .metric-date { color: #7EA2B3; font-size: 13px; line-height: 1.45; }
 .metric-note { margin-top: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; }
 .metric-explanation { margin-top: 12px; color: #4F7081; font-size: 12px; line-height: 1.65; text-align: left; white-space: pre-line; }
@@ -2431,11 +2514,18 @@ def metric_card(item: dict) -> str:
     result = metric_interpretation(item)
     if metric is None:
         value_text = "N/A"
+        compare_text = ""
         date_text = "数据时间：未找到"
     else:
         value_text = format_value(metric)
+        compare_text = metric_previous_compare_text(metric)
         date_text = f"{item['date_label']}：{format_time_zh(metric.get('time'))}"
 
+    compare_html = (
+        f'<span class="metric-previous-value">（{escape(compare_text)}）</span>'
+        if compare_text
+        else ""
+    )
     note_html = f'<div class="metric-note">{escape(item["note"])}</div>' if item.get("note") else ""
     explanation_html = (
         f'<div class="metric-explanation">{escape(item["explanation"])}</div>'
@@ -2447,7 +2537,7 @@ def metric_card(item: dict) -> str:
       <div class="metric-name">
         <span>{escape(item["title"])}</span><span class="metric-status {escape(result["tone"])}">（{escape(metric_status_display_text(item, result))}）</span>
       </div>
-      <div class="metric-value">{escape(value_text)}</div>
+      <div class="metric-value"><span class="metric-current-value">{escape(value_text)}</span>{compare_html}</div>
       <div class="metric-date">{escape(date_text)}</div>
       {note_html}
       {explanation_html}
