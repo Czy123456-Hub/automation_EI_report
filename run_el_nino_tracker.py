@@ -133,6 +133,12 @@ CPC_30DAY_REGIONS = {
         "fallback_img_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/Brazil/daily/p.30day.figb.gif",
         "out_path": ASSETS_DIR / "cpc_brazil_30day_anom.gif",
     },
+    "europe": {
+        "name": "Europe 30-Day Anomaly",
+        "page_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/Europe/index.shtml",
+        "fallback_img_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/Europe/daily/p.30day.figb.gif",
+        "out_path": ASSETS_DIR / "cpc_europe_30day_anom.gif",
+    },
 }
 
 CPC_WEEK1_PAGES = {
@@ -155,6 +161,11 @@ CPC_WEEK1_PAGES = {
         "page_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/China/GFS_forecasts.shtml",
         "fallback_img_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/GFS/China_curr.p.gfs1b.gif",
         "out_path": ASSETS_DIR / "cpc_china_week1_anomaly.gif",
+    },
+    "europe": {
+        "page_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/Europe/GFS_forecasts.shtml",
+        "fallback_img_url": "https://www.cpc.ncep.noaa.gov/products/JAWF_Monitoring/GFS/Europe_curr.p.gfs1b.gif",
+        "out_path": ASSETS_DIR / "cpc_europe_week1_anomaly.gif",
     },
 }
 
@@ -2190,6 +2201,14 @@ def country_weather() -> list[dict]:
                 ("VCI植被状况指数", "时间段：如图所示，最近一个工作日", ASSETS_DIR / "vci_china_guangxi_sugarcane.png"),
             ],
         },
+        {
+            "country": "欧洲",
+            "summary": "关注过去30天降雨距平差和未来一周降水距平差。",
+            "images": [
+                ("过去30天降雨距平差", "时间段：过去30天，具体日期以图中标注为准", ASSETS_DIR / "cpc_europe_30day_anom.gif"),
+                ("未来一周降水距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_europe_week1_anomaly.gif"),
+            ],
+        },
     ]
 
 
@@ -2845,7 +2864,7 @@ def country_section(section: dict, history_data: dict) -> str:
           <h3>{escape(section["country"])}</h3>
           <p>{escape(section["summary"])}</p>
         </div>
-        <span class="country-badge">3 张图</span>
+        <span class="country-badge">{len(section["images"])} 张图</span>
       </div>
       <div class="weather-grid">
         {cards}
