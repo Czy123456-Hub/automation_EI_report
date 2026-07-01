@@ -1504,12 +1504,9 @@ def metric_previous_compare_text(metric: dict | None) -> str:
         return ""
 
     unit = str(metric.get("unit", "") or previous.get("unit", "") or "").strip()
-    if previous_value == 0:
-        change_text = "N/A"
-    else:
-        change_text = f"{((current_value - previous_value) / abs(previous_value)) * 100:+.1f}%"
+    change_text = format_value({"value": current_value - previous_value, "unit": unit})
     previous_text = format_value({"value": previous_value, "unit": unit})
-    return f"环比 {change_text}；上期值 {previous_text}"
+    return f"差值 {change_text}；上期值 {previous_text}"
 
 
 def format_time_zh(time_text: str | None) -> str:
