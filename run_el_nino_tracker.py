@@ -171,6 +171,26 @@ CPC_WEEK1_PAGES = {
 
 CPC_DIRECT_IMAGES = [
     {
+        "name": "India Weekly Temperature Anomaly",
+        "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan6.png",
+        "out_path": ASSETS_DIR / "cpc_india_weekly_temp_anom.png",
+    },
+    {
+        "name": "Thailand Weekly Temperature Anomaly",
+        "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan5.png",
+        "out_path": ASSETS_DIR / "cpc_thailand_weekly_temp_anom.png",
+    },
+    {
+        "name": "Brazil Weekly Temperature Anomaly",
+        "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan15.png",
+        "out_path": ASSETS_DIR / "cpc_brazil_weekly_temp_anom.png",
+    },
+    {
+        "name": "China Weekly Temperature Anomaly",
+        "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan2.png",
+        "out_path": ASSETS_DIR / "cpc_china_weekly_temp_anom.png",
+    },
+    {
         "name": "Europe Weekly Temperature Anomaly",
         "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan1.png",
         "out_path": ASSETS_DIR / "cpc_europe_weekly_temp_anom.png",
@@ -2182,38 +2202,42 @@ def country_weather() -> list[dict]:
     return [
         {
             "country": "印度",
-            "summary": "关注季风推进、累积降雨距平差和未来一周降雨距平差。",
+            "summary": "关注季风推进、累积降雨距平差、未来一周降雨距平差和周度气温距平差。",
             "images": [
                 ("季风推进", "时间段：季风监测，具体日期以图中标注为准", ASSETS_DIR / "imd_monsoon_sw.png"),
                 ("累积降雨距平差", "时间段：累积降雨，具体起止日期以图中标注为准", IMD_RAINFALL_FULL_OUT),
                 ("未来一周降雨距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_india_week1_anomaly.gif"),
+                ("周度气温距平差", "时间段：周度观测，具体日期以图中标注为准", ASSETS_DIR / "cpc_india_weekly_temp_anom.png"),
             ],
         },
         {
             "country": "泰国",
-            "summary": "以东南亚区域图作为泰国及周边产区参考。",
+            "summary": "以东南亚区域降雨图和泰国周度气温距平图作为泰国及周边产区参考。",
             "images": [
                 ("过去30天降雨距平差", "时间段：过去30天，具体日期以图中标注为准", ASSETS_DIR / "cpc_seasia_30day_anom.gif"),
                 ("未来一周降水距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_seasia_week1_anomaly.gif"),
                 ("VCI植被状况指数", "时间段：如图所示，最近一个工作日", ASSETS_DIR / "vci_thailand_nakhon_phanom_sugarcane.png"),
+                ("周度气温距平差", "时间段：周度观测，具体日期以图中标注为准", ASSETS_DIR / "cpc_thailand_weekly_temp_anom.png"),
             ],
         },
         {
             "country": "巴西",
-            "summary": "关注过去30天降雨距平差、未来一周降水距平差和植被状况。",
+            "summary": "关注过去30天降雨距平差、未来一周降水距平差、植被状况和周度气温距平差。",
             "images": [
                 ("过去30天降雨距平差", "时间段：过去30天，具体日期以图中标注为准", ASSETS_DIR / "cpc_brazil_30day_anom.gif"),
                 ("未来一周降水距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_brazil_week1_anomaly.gif"),
                 ("VCI植被状况指数", "时间段：如图所示，最近一个工作日", ASSETS_DIR / "vci_brazil_sao_paulo_sugarcane.png"),
+                ("周度气温距平差", "时间段：周度观测，具体日期以图中标注为准", ASSETS_DIR / "cpc_brazil_weekly_temp_anom.png"),
             ],
         },
         {
             "country": "中国",
-            "summary": "关注过去30天降雨距平差、未来一周降水距平差和植被状况。",
+            "summary": "关注过去30天降雨距平差、未来一周降水距平差、植被状况和周度气温距平差。",
             "images": [
                 ("过去30天降雨距平差", "时间段：过去30天，具体日期以图中标注为准", ASSETS_DIR / "cpc_china_30day_anom.gif"),
                 ("未来一周降水距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_china_week1_anomaly.gif"),
                 ("VCI植被状况指数", "时间段：如图所示，最近一个工作日", ASSETS_DIR / "vci_china_guangxi_sugarcane.png"),
+                ("周度气温距平差", "时间段：周度观测，具体日期以图中标注为准", ASSETS_DIR / "cpc_china_weekly_temp_anom.png"),
             ],
         },
         {
@@ -2415,7 +2439,9 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .section-title { display: flex; align-items: center; gap: 10px; margin: 32px 0 16px; }
 .section-title h2 { margin: 0; font-size: 23px; }
 .rule { height: 1px; flex: 1; background: linear-gradient(90deg, var(--border), rgba(215,238,248,0)); }
-.metrics-grid, .weather-grid, .forecast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.metrics-grid, .weather-grid, .forecast-grid { display: grid; gap: 18px; }
+.metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.weather-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .forecast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .metric-card, .country-section, .weather-card, .footer {
   background: rgba(255,255,255,.94); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(18,115,156,.08);

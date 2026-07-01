@@ -92,6 +92,30 @@
       "country": "欧洲",
       "file": "cpc_europe_weekly_temp_anom.png",
       "source_updated_at_beijing": "2026-07-01 15:49"
+    },
+    "cpc_india_weekly_temp_anom": {
+      "title": "周度气温距平差",
+      "country": "印度",
+      "file": "cpc_india_weekly_temp_anom.png",
+      "source_updated_at_beijing": "2026-07-01 16:38"
+    },
+    "cpc_thailand_weekly_temp_anom": {
+      "title": "周度气温距平差",
+      "country": "泰国",
+      "file": "cpc_thailand_weekly_temp_anom.png",
+      "source_updated_at_beijing": "2026-07-01 16:38"
+    },
+    "cpc_brazil_weekly_temp_anom": {
+      "title": "周度气温距平差",
+      "country": "巴西",
+      "file": "cpc_brazil_weekly_temp_anom.png",
+      "source_updated_at_beijing": "2026-07-01 16:38"
+    },
+    "cpc_china_weekly_temp_anom": {
+      "title": "周度气温距平差",
+      "country": "中国",
+      "file": "cpc_china_weekly_temp_anom.png",
+      "source_updated_at_beijing": "2026-07-01 16:38"
     }
   }
 }
