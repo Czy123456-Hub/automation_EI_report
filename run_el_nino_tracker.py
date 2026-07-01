@@ -169,6 +169,14 @@ CPC_WEEK1_PAGES = {
     },
 }
 
+CPC_DIRECT_IMAGES = [
+    {
+        "name": "Europe Weekly Temperature Anomaly",
+        "url": "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/regional_monitoring/wctan1.png",
+        "out_path": ASSETS_DIR / "cpc_europe_weekly_temp_anom.png",
+    },
+]
+
 IMD_RAINFALL_PAGE_URL = "https://mausam.imd.gov.in/responsive/rainfallinformation.php?msg=C"
 IMD_RAINFALL_LEGEND_URL = "https://mausam.imd.gov.in/responsive/img/img-in/legendsRFPer.svg"
 IMD_RAINFALL_LEGEND_OUT = ASSETS_DIR / "imd_rainfall_legend.svg"
@@ -823,6 +831,13 @@ def download_cpc_images() -> None:
             print(f"{key.upper()} Week 1 Anomaly 下载成功：{item['out_path']}")
         except Exception as exc:
             warn(f"{key.upper()} Week 1 Anomaly 下载失败，保留已有图片：{exc}")
+
+    for item in CPC_DIRECT_IMAGES:
+        try:
+            download_binary(item["url"], item["out_path"], referer=item["url"])
+            print(f"{item['name']} 下载成功：{item['out_path']}")
+        except Exception as exc:
+            warn(f"{item['name']} 下载失败，保留已有图片：{exc}")
 
 
 def download_mausam_sw_monsoon() -> None:
@@ -2203,10 +2218,11 @@ def country_weather() -> list[dict]:
         },
         {
             "country": "欧洲",
-            "summary": "关注过去30天降雨距平差和未来一周降水距平差。",
+            "summary": "关注过去30天降雨距平差、未来一周降水距平差和周度气温距平差。",
             "images": [
                 ("过去30天降雨距平差", "时间段：过去30天，具体日期以图中标注为准", ASSETS_DIR / "cpc_europe_30day_anom.gif"),
                 ("未来一周降水距平差", "时间段：未来一周预报，具体有效期以图中标注为准", ASSETS_DIR / "cpc_europe_week1_anomaly.gif"),
+                ("周度气温距平差", "时间段：周度观测，具体日期以图中标注为准", ASSETS_DIR / "cpc_europe_weekly_temp_anom.png"),
             ],
         },
     ]
