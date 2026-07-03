@@ -1,6 +1,6 @@
 Schedule probe ran successfully.
 Event: schedule
-Beijing time: 2026-07-04 06:30:49 CST
-UTC time: 2026-07-03 22:30:49 UTC
-Run ID: 28686096195
-Run URL: https://github.com/Czy123456-Hub/automation_EI_report/actions/runs/28686096195
+Beijing time: 2026-07-04 07:38:19 CST
+UTC time: 2026-07-03 23:38:19 UTC
+Run ID: 28688019362
+Run URL: https://github.com/Czy123456-Hub/automation_EI_report/actions/runs/28688019362
