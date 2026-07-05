@@ -2524,9 +2524,10 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .weather-image-frame {
   position: relative; width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
   overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF;
+  cursor: zoom-in;
 }
 .forecast-grid .weather-image-frame { aspect-ratio: 16 / 9; }
-.weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
 .image-badge {
   position: absolute; left: 10px; top: 10px; padding: 5px 8px; border-radius: 999px;
   background: rgba(255,255,255,.92); color: var(--primary); border: 1px solid var(--border);
@@ -2546,6 +2547,36 @@ figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
+.image-lightbox[hidden] { display: none; }
+.image-lightbox {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: 22px; background: rgba(9, 31, 45, .86); backdrop-filter: blur(3px);
+}
+.image-lightbox-panel {
+  width: min(96vw, 1800px); max-height: 94vh; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid rgba(215,238,248,.55); border-radius: 16px; background: #FFFFFF;
+  box-shadow: 0 28px 80px rgba(0,0,0,.34);
+}
+.image-lightbox-head {
+  min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); background: #F8FDFF;
+}
+.image-lightbox-title { color: var(--primary); font-size: 16px; line-height: 1.35; font-weight: 900; }
+.image-lightbox-meta { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; font-weight: 700; }
+.image-lightbox-close {
+  width: 38px; height: 38px; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px;
+  color: var(--primary); background: #FFFFFF; font-size: 26px; line-height: 1; cursor: pointer;
+}
+.image-lightbox-close:hover { background: #E7F8FF; }
+.image-lightbox-body {
+  min-height: 0; flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 14px; overflow: auto; background: #FFFFFF;
+}
+.image-lightbox-body img {
+  display: block; width: auto; height: auto; max-width: 100%; max-height: calc(94vh - 104px);
+  object-fit: contain; cursor: zoom-out;
+}
+body.lightbox-open { overflow: hidden; }
 .footer { margin-top: 28px; padding: 16px 20px; border-radius: 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 @media (max-width: 1120px) {
   .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2563,6 +2594,11 @@ figcaption { padding: 12px 14px 15px; }
   .history-compare-head { align-items: flex-start; flex-direction: column; }
   .card-history-select-wrap { width: 100%; justify-content: space-between; }
   .country-section { padding: 15px; }
+  .image-lightbox { padding: 12px; }
+  .image-lightbox-panel { width: 100%; max-height: 96vh; border-radius: 12px; }
+  .image-lightbox-head { min-height: 54px; padding: 10px 12px; }
+  .image-lightbox-body { padding: 10px; }
+  .image-lightbox-body img { max-height: calc(96vh - 96px); }
 }
 """
 
@@ -2979,6 +3015,86 @@ def history_script(history_data: dict) -> str:
     """
 
 
+def image_lightbox_html() -> str:
+    return """
+  <div class="image-lightbox" id="image-lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="image-lightbox-title">
+    <div class="image-lightbox-panel">
+      <div class="image-lightbox-head">
+        <div>
+          <div class="image-lightbox-title" id="image-lightbox-title"></div>
+          <div class="image-lightbox-meta" id="image-lightbox-meta"></div>
+        </div>
+        <button class="image-lightbox-close" type="button" aria-label="关闭大图">&times;</button>
+      </div>
+      <div class="image-lightbox-body">
+        <img id="image-lightbox-img" alt="" />
+      </div>
+    </div>
+  </div>
+    """
+
+
+def image_lightbox_script() -> str:
+    return """
+  <script>
+    (() => {
+      const lightbox = document.getElementById('image-lightbox');
+      const lightboxImg = document.getElementById('image-lightbox-img');
+      const titleNode = document.getElementById('image-lightbox-title');
+      const metaNode = document.getElementById('image-lightbox-meta');
+      const closeButton = lightbox ? lightbox.querySelector('.image-lightbox-close') : null;
+      if (!lightbox || !lightboxImg || !titleNode || !metaNode || !closeButton) return;
+
+      function imageInfo(img) {
+        const figure = img.closest('.weather-card');
+        const history = img.closest('.history-compare');
+        const title = figure?.querySelector('.image-title')?.textContent?.trim()
+          || img.getAttribute('alt')
+          || '图片';
+        const meta = history?.querySelector('[data-history-date]')?.textContent?.trim()
+          || figure?.querySelector('.image-date')?.textContent?.trim()
+          || '';
+        return { title, meta };
+      }
+
+      function openLightbox(img) {
+        if (!img || !img.src) return;
+        const info = imageInfo(img);
+        lightboxImg.src = img.currentSrc || img.src;
+        lightboxImg.alt = img.getAttribute('alt') || info.title;
+        titleNode.textContent = info.title;
+        metaNode.textContent = info.meta;
+        lightbox.hidden = false;
+        document.body.classList.add('lightbox-open');
+        closeButton.focus({ preventScroll: true });
+      }
+
+      function closeLightbox() {
+        lightbox.hidden = true;
+        lightboxImg.removeAttribute('src');
+        document.body.classList.remove('lightbox-open');
+      }
+
+      document.addEventListener('click', (event) => {
+        const frame = event.target.closest('.weather-image-frame');
+        if (!frame || frame.closest('.image-lightbox')) return;
+        const img = frame.querySelector('img');
+        if (!img) return;
+        openLightbox(img);
+      });
+
+      closeButton.addEventListener('click', closeLightbox);
+      lightbox.addEventListener('click', (event) => {
+        if (event.target === lightbox) closeLightbox();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !lightbox.hidden) closeLightbox();
+      });
+    })();
+  </script>
+    """
+
+
 def strip_trailing_line_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
 
@@ -2995,7 +3111,9 @@ def build_html(metrics: list[dict], history_data: dict | None = None) -> str:
     forecast_html = forecast_section()
     weather_history_controls = history_controls(history_data)
     country_sections = "\n".join(country_section(section, history_data) for section in country_weather())
+    lightbox_html = image_lightbox_html()
     history_js = history_script(history_data)
+    lightbox_js = image_lightbox_script()
 
     warning_html = ""
     if warnings:
@@ -3057,7 +3175,9 @@ def build_html(metrics: list[dict], history_data: dict | None = None) -> str:
       说明：图片的具体统计日期和预报有效期以图中标注为准。
     </div>
   </main>
+  {lightbox_html}
   {history_js}
+  {lightbox_js}
 </body>
 </html>
 """

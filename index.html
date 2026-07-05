@@ -119,9 +119,10 @@ h1 { margin: 0; color: var(--primary); font-size: clamp(30px, 3vw, 46px); line-h
 .weather-image-frame {
   position: relative; width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
   overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #FFFFFF;
+  cursor: zoom-in;
 }
 .forecast-grid .weather-image-frame { aspect-ratio: 16 / 9; }
-.weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.weather-card img { display: block; width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
 .image-badge {
   position: absolute; left: 10px; top: 10px; padding: 5px 8px; border-radius: 999px;
   background: rgba(255,255,255,.92); color: var(--primary); border: 1px solid var(--border);
@@ -141,6 +142,36 @@ figcaption { padding: 12px 14px 15px; }
 .image-title { margin-bottom: 6px; color: var(--primary); font-weight: 800; font-size: 15px; line-height: 1.45; }
 .image-period { margin-bottom: 6px; color: #2E8DB4; font-size: 12px; font-weight: 700; line-height: 1.55; }
 .image-date { color: #8AA9B8; font-size: 11px; line-height: 1.45; }
+.image-lightbox[hidden] { display: none; }
+.image-lightbox {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: 22px; background: rgba(9, 31, 45, .86); backdrop-filter: blur(3px);
+}
+.image-lightbox-panel {
+  width: min(96vw, 1800px); max-height: 94vh; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid rgba(215,238,248,.55); border-radius: 16px; background: #FFFFFF;
+  box-shadow: 0 28px 80px rgba(0,0,0,.34);
+}
+.image-lightbox-head {
+  min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); background: #F8FDFF;
+}
+.image-lightbox-title { color: var(--primary); font-size: 16px; line-height: 1.35; font-weight: 900; }
+.image-lightbox-meta { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; font-weight: 700; }
+.image-lightbox-close {
+  width: 38px; height: 38px; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px;
+  color: var(--primary); background: #FFFFFF; font-size: 26px; line-height: 1; cursor: pointer;
+}
+.image-lightbox-close:hover { background: #E7F8FF; }
+.image-lightbox-body {
+  min-height: 0; flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 14px; overflow: auto; background: #FFFFFF;
+}
+.image-lightbox-body img {
+  display: block; width: auto; height: auto; max-width: 100%; max-height: calc(94vh - 104px);
+  object-fit: contain; cursor: zoom-out;
+}
+body.lightbox-open { overflow: hidden; }
 .footer { margin-top: 28px; padding: 16px 20px; border-radius: 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 @media (max-width: 1120px) {
   .metrics-grid, .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -158,6 +189,11 @@ figcaption { padding: 12px 14px 15px; }
   .history-compare-head { align-items: flex-start; flex-direction: column; }
   .card-history-select-wrap { width: 100%; justify-content: space-between; }
   .country-section { padding: 15px; }
+  .image-lightbox { padding: 12px; }
+  .image-lightbox-panel { width: 100%; max-height: 96vh; border-radius: 12px; }
+  .image-lightbox-head { min-height: 54px; padding: 10px 12px; }
+  .image-lightbox-body { padding: 10px; }
+  .image-lightbox-body img { max-height: calc(96vh - 96px); }
 }
 </style>
 </head>
@@ -1797,6 +1833,21 @@ figcaption { padding: 12px 14px 15px; }
       说明：图片的具体统计日期和预报有效期以图中标注为准。
     </div>
   </main>
+  <div class="image-lightbox" id="image-lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="image-lightbox-title">
+    <div class="image-lightbox-panel">
+      <div class="image-lightbox-head">
+        <div>
+          <div class="image-lightbox-title" id="image-lightbox-title"></div>
+          <div class="image-lightbox-meta" id="image-lightbox-meta"></div>
+        </div>
+        <button class="image-lightbox-close" type="button" aria-label="关闭大图">&times;</button>
+      </div>
+      <div class="image-lightbox-body">
+        <img id="image-lightbox-img" alt="" />
+      </div>
+    </div>
+  </div>
+
 
   <script type="application/json" id="weather-history-data">{"current": {"date": "2026-07-05", "date_label": "7月5日", "label": "T｜7月5日"}, "options": [{"offset": 1, "date": "2026-07-04", "date_label": "7月4日", "label": "T-1｜7月4日", "available_count": 19, "images": {"imd_monsoon_sw": "history/2026-07-04/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-07-04/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-07-04/cpc_india_week1_anomaly.gif", "cpc_india_weekly_temp_anom": "history/2026-07-04/cpc_india_weekly_temp_anom.png", "cpc_seasia_30day_anom": "history/2026-07-04/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-07-04/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-07-04/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_thailand_weekly_temp_anom": "history/2026-07-04/cpc_thailand_weekly_temp_anom.png", "cpc_brazil_30day_anom": "history/2026-07-04/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-07-04/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-07-04/vci_brazil_sao_paulo_sugarcane.png", "cpc_brazil_weekly_temp_anom": "history/2026-07-04/cpc_brazil_weekly_temp_anom.png", "cpc_china_30day_anom": "history/2026-07-04/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-07-04/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-07-04/vci_china_guangxi_sugarcane.png", "cpc_china_weekly_temp_anom": "history/2026-07-04/cpc_china_weekly_temp_anom.png", "cpc_europe_30day_anom": "history/2026-07-04/cpc_europe_30day_anom.gif", "cpc_europe_week1_anomaly": "history/2026-07-04/cpc_europe_week1_anomaly.gif", "cpc_europe_weekly_temp_anom": "history/2026-07-04/cpc_europe_weekly_temp_anom.png"}}, {"offset": 2, "date": "2026-07-03", "date_label": "7月3日", "label": "T-2｜7月3日", "available_count": 19, "images": {"imd_monsoon_sw": "history/2026-07-03/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-07-03/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-07-03/cpc_india_week1_anomaly.gif", "cpc_india_weekly_temp_anom": "history/2026-07-03/cpc_india_weekly_temp_anom.png", "cpc_seasia_30day_anom": "history/2026-07-03/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-07-03/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-07-03/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_thailand_weekly_temp_anom": "history/2026-07-03/cpc_thailand_weekly_temp_anom.png", "cpc_brazil_30day_anom": "history/2026-07-03/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-07-03/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-07-03/vci_brazil_sao_paulo_sugarcane.png", "cpc_brazil_weekly_temp_anom": "history/2026-07-03/cpc_brazil_weekly_temp_anom.png", "cpc_china_30day_anom": "history/2026-07-03/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-07-03/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-07-03/vci_china_guangxi_sugarcane.png", "cpc_china_weekly_temp_anom": "history/2026-07-03/cpc_china_weekly_temp_anom.png", "cpc_europe_30day_anom": "history/2026-07-03/cpc_europe_30day_anom.gif", "cpc_europe_week1_anomaly": "history/2026-07-03/cpc_europe_week1_anomaly.gif", "cpc_europe_weekly_temp_anom": "history/2026-07-03/cpc_europe_weekly_temp_anom.png"}}, {"offset": 3, "date": "2026-07-02", "date_label": "7月2日", "label": "T-3｜7月2日", "available_count": 19, "images": {"imd_monsoon_sw": "history/2026-07-02/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-07-02/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-07-02/cpc_india_week1_anomaly.gif", "cpc_india_weekly_temp_anom": "history/2026-07-02/cpc_india_weekly_temp_anom.png", "cpc_seasia_30day_anom": "history/2026-07-02/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-07-02/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-07-02/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_thailand_weekly_temp_anom": "history/2026-07-02/cpc_thailand_weekly_temp_anom.png", "cpc_brazil_30day_anom": "history/2026-07-02/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-07-02/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-07-02/vci_brazil_sao_paulo_sugarcane.png", "cpc_brazil_weekly_temp_anom": "history/2026-07-02/cpc_brazil_weekly_temp_anom.png", "cpc_china_30day_anom": "history/2026-07-02/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-07-02/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-07-02/vci_china_guangxi_sugarcane.png", "cpc_china_weekly_temp_anom": "history/2026-07-02/cpc_china_weekly_temp_anom.png", "cpc_europe_30day_anom": "history/2026-07-02/cpc_europe_30day_anom.gif", "cpc_europe_week1_anomaly": "history/2026-07-02/cpc_europe_week1_anomaly.gif", "cpc_europe_weekly_temp_anom": "history/2026-07-02/cpc_europe_weekly_temp_anom.png"}}, {"offset": 4, "date": "2026-07-01", "date_label": "7月1日", "label": "T-4｜7月1日", "available_count": 19, "images": {"imd_monsoon_sw": "history/2026-07-01/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-07-01/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-07-01/cpc_india_week1_anomaly.gif", "cpc_india_weekly_temp_anom": "history/2026-07-01/cpc_india_weekly_temp_anom.png", "cpc_seasia_30day_anom": "history/2026-07-01/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-07-01/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-07-01/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_thailand_weekly_temp_anom": "history/2026-07-01/cpc_thailand_weekly_temp_anom.png", "cpc_brazil_30day_anom": "history/2026-07-01/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-07-01/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-07-01/vci_brazil_sao_paulo_sugarcane.png", "cpc_brazil_weekly_temp_anom": "history/2026-07-01/cpc_brazil_weekly_temp_anom.png", "cpc_china_30day_anom": "history/2026-07-01/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-07-01/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-07-01/vci_china_guangxi_sugarcane.png", "cpc_china_weekly_temp_anom": "history/2026-07-01/cpc_china_weekly_temp_anom.png", "cpc_europe_30day_anom": "history/2026-07-01/cpc_europe_30day_anom.gif", "cpc_europe_week1_anomaly": "history/2026-07-01/cpc_europe_week1_anomaly.gif", "cpc_europe_weekly_temp_anom": "history/2026-07-01/cpc_europe_weekly_temp_anom.png"}}, {"offset": 5, "date": "2026-06-30", "date_label": "6月30日", "label": "T-5｜6月30日", "available_count": 12, "images": {"imd_monsoon_sw": "history/2026-06-30/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-06-30/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-06-30/cpc_india_week1_anomaly.gif", "cpc_seasia_30day_anom": "history/2026-06-30/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-06-30/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-06-30/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_brazil_30day_anom": "history/2026-06-30/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-06-30/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-06-30/vci_brazil_sao_paulo_sugarcane.png", "cpc_china_30day_anom": "history/2026-06-30/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-06-30/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-06-30/vci_china_guangxi_sugarcane.png"}}, {"offset": 6, "date": "2026-06-29", "date_label": "6月29日", "label": "T-6｜6月29日", "available_count": 12, "images": {"imd_monsoon_sw": "history/2026-06-29/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-06-29/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-06-29/cpc_india_week1_anomaly.gif", "cpc_seasia_30day_anom": "history/2026-06-29/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-06-29/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-06-29/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_brazil_30day_anom": "history/2026-06-29/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-06-29/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-06-29/vci_brazil_sao_paulo_sugarcane.png", "cpc_china_30day_anom": "history/2026-06-29/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-06-29/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-06-29/vci_china_guangxi_sugarcane.png"}}, {"offset": 7, "date": "2026-06-28", "date_label": "6月28日", "label": "T-7｜6月28日", "available_count": 12, "images": {"imd_monsoon_sw": "history/2026-06-28/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-06-28/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-06-28/cpc_india_week1_anomaly.gif", "cpc_seasia_30day_anom": "history/2026-06-28/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-06-28/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-06-28/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_brazil_30day_anom": "history/2026-06-28/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-06-28/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-06-28/vci_brazil_sao_paulo_sugarcane.png", "cpc_china_30day_anom": "history/2026-06-28/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-06-28/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-06-28/vci_china_guangxi_sugarcane.png"}}, {"offset": 8, "date": "2026-06-27", "date_label": "6月27日", "label": "T-8｜6月27日", "available_count": 12, "images": {"imd_monsoon_sw": "history/2026-06-27/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-06-27/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-06-27/cpc_india_week1_anomaly.gif", "cpc_seasia_30day_anom": "history/2026-06-27/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-06-27/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-06-27/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_brazil_30day_anom": "history/2026-06-27/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-06-27/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-06-27/vci_brazil_sao_paulo_sugarcane.png", "cpc_china_30day_anom": "history/2026-06-27/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-06-27/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-06-27/vci_china_guangxi_sugarcane.png"}}, {"offset": 9, "date": "2026-06-26", "date_label": "6月26日", "label": "T-9｜6月26日", "available_count": 12, "images": {"imd_monsoon_sw": "history/2026-06-26/imd_monsoon_sw.png", "imd_rainfall_full": "history/2026-06-26/imd_rainfall_full.png", "cpc_india_week1_anomaly": "history/2026-06-26/cpc_india_week1_anomaly.gif", "cpc_seasia_30day_anom": "history/2026-06-26/cpc_seasia_30day_anom.gif", "cpc_seasia_week1_anomaly": "history/2026-06-26/cpc_seasia_week1_anomaly.gif", "vci_thailand_nakhon_phanom_sugarcane": "history/2026-06-26/vci_thailand_nakhon_phanom_sugarcane.png", "cpc_brazil_30day_anom": "history/2026-06-26/cpc_brazil_30day_anom.gif", "cpc_brazil_week1_anomaly": "history/2026-06-26/cpc_brazil_week1_anomaly.gif", "vci_brazil_sao_paulo_sugarcane": "history/2026-06-26/vci_brazil_sao_paulo_sugarcane.png", "cpc_china_30day_anom": "history/2026-06-26/cpc_china_30day_anom.gif", "cpc_china_week1_anomaly": "history/2026-06-26/cpc_china_week1_anomaly.gif", "vci_china_guangxi_sugarcane": "history/2026-06-26/vci_china_guangxi_sugarcane.png"}}, {"offset": 10, "date": "2026-06-25", "date_label": "6月25日", "label": "T-10｜6月25日", "available_count": 0, "images": {}}, {"offset": 11, "date": "2026-06-24", "date_label": "6月24日", "label": "T-11｜6月24日", "available_count": 0, "images": {}}, {"offset": 12, "date": "2026-06-23", "date_label": "6月23日", "label": "T-12｜6月23日", "available_count": 0, "images": {}}, {"offset": 13, "date": "2026-06-22", "date_label": "6月22日", "label": "T-13｜6月22日", "available_count": 0, "images": {}}, {"offset": 14, "date": "2026-06-21", "date_label": "6月21日", "label": "T-14｜6月21日", "available_count": 0, "images": {}}, {"offset": 15, "date": "2026-06-20", "date_label": "6月20日", "label": "T-15｜6月20日", "available_count": 0, "images": {}}, {"offset": 16, "date": "2026-06-19", "date_label": "6月19日", "label": "T-16｜6月19日", "available_count": 0, "images": {}}, {"offset": 17, "date": "2026-06-18", "date_label": "6月18日", "label": "T-17｜6月18日", "available_count": 0, "images": {}}, {"offset": 18, "date": "2026-06-17", "date_label": "6月17日", "label": "T-18｜6月17日", "available_count": 0, "images": {}}, {"offset": 19, "date": "2026-06-16", "date_label": "6月16日", "label": "T-19｜6月16日", "available_count": 0, "images": {}}, {"offset": 20, "date": "2026-06-15", "date_label": "6月15日", "label": "T-20｜6月15日", "available_count": 0, "images": {}}, {"offset": 21, "date": "2026-06-14", "date_label": "6月14日", "label": "T-21｜6月14日", "available_count": 0, "images": {}}, {"offset": 22, "date": "2026-06-13", "date_label": "6月13日", "label": "T-22｜6月13日", "available_count": 0, "images": {}}, {"offset": 23, "date": "2026-06-12", "date_label": "6月12日", "label": "T-23｜6月12日", "available_count": 0, "images": {}}, {"offset": 24, "date": "2026-06-11", "date_label": "6月11日", "label": "T-24｜6月11日", "available_count": 0, "images": {}}, {"offset": 25, "date": "2026-06-10", "date_label": "6月10日", "label": "T-25｜6月10日", "available_count": 0, "images": {}}, {"offset": 26, "date": "2026-06-09", "date_label": "6月9日", "label": "T-26｜6月9日", "available_count": 0, "images": {}}, {"offset": 27, "date": "2026-06-08", "date_label": "6月8日", "label": "T-27｜6月8日", "available_count": 0, "images": {}}, {"offset": 28, "date": "2026-06-07", "date_label": "6月7日", "label": "T-28｜6月7日", "available_count": 0, "images": {}}, {"offset": 29, "date": "2026-06-06", "date_label": "6月6日", "label": "T-29｜6月6日", "available_count": 0, "images": {}}, {"offset": 30, "date": "2026-06-05", "date_label": "6月5日", "label": "T-30｜6月5日", "available_count": 0, "images": {}}], "placeholder": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%221200%22%20height%3D%22760%22%20viewBox%3D%220%200%201200%20760%22%3E%20%3Crect%20width%3D%221200%22%20height%3D%22760%22%20rx%3D%2228%22%20fill%3D%22%23F3FBFF%22/%3E%20%3Crect%20x%3D%2270%22%20y%3D%2270%22%20width%3D%221060%22%20height%3D%22620%22%20rx%3D%2224%22%20fill%3D%22%23FFFFFF%22%20stroke%3D%22%23D7EEF8%22%20stroke-width%3D%224%22/%3E%20%3Ctext%20x%3D%22110%22%20y%3D%22170%22%20font-family%3D%22Arial%2C%20Microsoft%20YaHei%2C%20sans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23197EA8%22%3E%E5%8E%86%E5%8F%B2%E5%AF%B9%E6%AF%94%E5%9B%BE%3C/text%3E%20%3Ctext%20x%3D%22110%22%20y%3D%22235%22%20font-family%3D%22Arial%2C%20Microsoft%20YaHei%2C%20sans-serif%22%20font-size%3D%2224%22%20fill%3D%22%2364899C%22%3E%E8%AF%A5%E6%97%A5%E6%9C%9F%E6%9A%82%E6%97%A0%E4%BF%9D%E5%AD%98%E5%9B%BE%E7%89%87%EF%BC%8C%E5%90%8E%E7%BB%AD%E8%BF%90%E8%A1%8C%E4%BC%9A%E8%87%AA%E5%8A%A8%E7%B4%AF%E7%A7%AF%3C/text%3E%20%3Cline%20x1%3D%22110%22%20y1%3D%22330%22%20x2%3D%221090%22%20y2%3D%22330%22%20stroke%3D%22%23D7EEF8%22%20stroke-width%3D%224%22/%3E%20%3Cline%20x1%3D%22110%22%20y1%3D%22445%22%20x2%3D%221090%22%20y2%3D%22445%22%20stroke%3D%22%23E7F8FF%22%20stroke-width%3D%223%22/%3E%20%3Cline%20x1%3D%22110%22%20y1%3D%22560%22%20x2%3D%221090%22%20y2%3D%22560%22%20stroke%3D%22%23E7F8FF%22%20stroke-width%3D%223%22/%3E%20%3Cpolyline%20points%3D%22130%2C585%20260%2C500%20390%2C530%20520%2C420%20650%2C455%20780%2C350%20910%2C390%201080%2C280%22%20fill%3D%22none%22%20stroke%3D%22%2321A7D8%22%20stroke-width%3D%2214%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%20%3Ctext%20x%3D%22110%22%20y%3D%22650%22%20font-family%3D%22Arial%2C%20Microsoft%20YaHei%2C%20sans-serif%22%20font-size%3D%2224%22%20fill%3D%22%238AA9B8%22%3E%E6%9A%82%E6%97%A0%E5%8F%AF%E7%94%A8%E5%9B%BE%E7%89%87%3C/text%3E%20%3C/svg%3E"}</script>
   <script>
@@ -1854,6 +1905,63 @@ figcaption { padding: 12px 14px 15px; }
         });
       });
       applyHistory(select.value || '1');
+    })();
+  </script>
+
+  <script>
+    (() => {
+      const lightbox = document.getElementById('image-lightbox');
+      const lightboxImg = document.getElementById('image-lightbox-img');
+      const titleNode = document.getElementById('image-lightbox-title');
+      const metaNode = document.getElementById('image-lightbox-meta');
+      const closeButton = lightbox ? lightbox.querySelector('.image-lightbox-close') : null;
+      if (!lightbox || !lightboxImg || !titleNode || !metaNode || !closeButton) return;
+
+      function imageInfo(img) {
+        const figure = img.closest('.weather-card');
+        const history = img.closest('.history-compare');
+        const title = figure?.querySelector('.image-title')?.textContent?.trim()
+          || img.getAttribute('alt')
+          || '图片';
+        const meta = history?.querySelector('[data-history-date]')?.textContent?.trim()
+          || figure?.querySelector('.image-date')?.textContent?.trim()
+          || '';
+        return { title, meta };
+      }
+
+      function openLightbox(img) {
+        if (!img || !img.src) return;
+        const info = imageInfo(img);
+        lightboxImg.src = img.currentSrc || img.src;
+        lightboxImg.alt = img.getAttribute('alt') || info.title;
+        titleNode.textContent = info.title;
+        metaNode.textContent = info.meta;
+        lightbox.hidden = false;
+        document.body.classList.add('lightbox-open');
+        closeButton.focus({ preventScroll: true });
+      }
+
+      function closeLightbox() {
+        lightbox.hidden = true;
+        lightboxImg.removeAttribute('src');
+        document.body.classList.remove('lightbox-open');
+      }
+
+      document.addEventListener('click', (event) => {
+        const frame = event.target.closest('.weather-image-frame');
+        if (!frame || frame.closest('.image-lightbox')) return;
+        const img = frame.querySelector('img');
+        if (!img) return;
+        openLightbox(img);
+      });
+
+      closeButton.addEventListener('click', closeLightbox);
+      lightbox.addEventListener('click', (event) => {
+        if (event.target === lightbox) closeLightbox();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !lightbox.hidden) closeLightbox();
+      });
     })();
   </script>
 
