@@ -1,224 +1,224 @@
 {
-  "current_date": "2026-07-30",
-  "current_date_label": "7月30日",
+  "current_date": "2026-07-31",
+  "current_date_label": "7月31日",
   "history_days": 30,
   "snapshots": [
     {
+      "date": "2026-07-31",
+      "date_label": "7月31日",
+      "offset": 0,
+      "updated_at_beijing": "2026-07-31 08:09",
+      "available_images": 19
+    },
+    {
       "date": "2026-07-30",
       "date_label": "7月30日",
-      "offset": 0,
+      "offset": 1,
       "updated_at_beijing": "2026-07-30 11:31",
       "available_images": 19
     },
     {
       "date": "2026-07-29",
       "date_label": "7月29日",
-      "offset": 1,
+      "offset": 2,
       "updated_at_beijing": "2026-07-29 11:45",
       "available_images": 19
     },
     {
       "date": "2026-07-28",
       "date_label": "7月28日",
-      "offset": 2,
+      "offset": 3,
       "updated_at_beijing": "2026-07-28 11:38",
       "available_images": 19
     },
     {
       "date": "2026-07-27",
       "date_label": "7月27日",
-      "offset": 3,
+      "offset": 4,
       "updated_at_beijing": "2026-07-27 12:05",
       "available_images": 19
     },
     {
       "date": "2026-07-26",
       "date_label": "7月26日",
-      "offset": 4,
+      "offset": 5,
       "updated_at_beijing": "2026-07-26 11:57",
       "available_images": 19
     },
     {
       "date": "2026-07-25",
       "date_label": "7月25日",
-      "offset": 5,
+      "offset": 6,
       "updated_at_beijing": "2026-07-25 11:40",
       "available_images": 19
     },
     {
       "date": "2026-07-24",
       "date_label": "7月24日",
-      "offset": 6,
+      "offset": 7,
       "updated_at_beijing": "2026-07-24 11:46",
       "available_images": 19
     },
     {
       "date": "2026-07-23",
       "date_label": "7月23日",
-      "offset": 7,
+      "offset": 8,
       "updated_at_beijing": "2026-07-23 11:47",
       "available_images": 19
     },
     {
       "date": "2026-07-22",
       "date_label": "7月22日",
-      "offset": 8,
+      "offset": 9,
       "updated_at_beijing": "2026-07-22 11:49",
       "available_images": 19
     },
     {
       "date": "2026-07-21",
       "date_label": "7月21日",
-      "offset": 9,
+      "offset": 10,
       "updated_at_beijing": "2026-07-21 11:48",
       "available_images": 19
     },
     {
       "date": "2026-07-20",
       "date_label": "7月20日",
-      "offset": 10,
+      "offset": 11,
       "updated_at_beijing": "2026-07-20 12:07",
       "available_images": 19
     },
     {
       "date": "2026-07-19",
       "date_label": "7月19日",
-      "offset": 11,
+      "offset": 12,
       "updated_at_beijing": "2026-07-19 11:57",
       "available_images": 19
     },
     {
       "date": "2026-07-18",
       "date_label": "7月18日",
-      "offset": 12,
+      "offset": 13,
       "updated_at_beijing": "2026-07-18 11:35",
       "available_images": 19
     },
     {
       "date": "2026-07-17",
       "date_label": "7月17日",
-      "offset": 13,
+      "offset": 14,
       "updated_at_beijing": "2026-07-17 11:40",
       "available_images": 19
     },
     {
       "date": "2026-07-16",
       "date_label": "7月16日",
-      "offset": 14,
+      "offset": 15,
       "updated_at_beijing": "2026-07-16 11:39",
       "available_images": 19
     },
     {
       "date": "2026-07-15",
       "date_label": "7月15日",
-      "offset": 15,
+      "offset": 16,
       "updated_at_beijing": "2026-07-15 11:37",
       "available_images": 19
     },
     {
       "date": "2026-07-14",
       "date_label": "7月14日",
-      "offset": 16,
+      "offset": 17,
       "updated_at_beijing": "2026-07-14 11:37",
       "available_images": 16
     },
     {
       "date": "2026-07-13",
       "date_label": "7月13日",
-      "offset": 17,
+      "offset": 18,
       "updated_at_beijing": "2026-07-13 12:03",
       "available_images": 19
     },
     {
       "date": "2026-07-12",
       "date_label": "7月12日",
-      "offset": 18,
+      "offset": 19,
       "updated_at_beijing": "2026-07-12 11:59",
       "available_images": 19
     },
     {
       "date": "2026-07-11",
       "date_label": "7月11日",
-      "offset": 19,
+      "offset": 20,
       "updated_at_beijing": "2026-07-11 11:45",
       "available_images": 16
     },
     {
       "date": "2026-07-10",
       "date_label": "7月10日",
-      "offset": 20,
+      "offset": 21,
       "updated_at_beijing": "2026-07-10 12:17",
       "available_images": 19
     },
     {
       "date": "2026-07-09",
       "date_label": "7月9日",
-      "offset": 21,
+      "offset": 22,
       "updated_at_beijing": "2026-07-09 12:16",
       "available_images": 19
     },
     {
       "date": "2026-07-08",
       "date_label": "7月8日",
-      "offset": 22,
+      "offset": 23,
       "updated_at_beijing": "2026-07-08 11:47",
       "available_images": 19
     },
     {
       "date": "2026-07-07",
       "date_label": "7月7日",
-      "offset": 23,
+      "offset": 24,
       "updated_at_beijing": "2026-07-07 12:18",
       "available_images": 19
     },
     {
       "date": "2026-07-06",
       "date_label": "7月6日",
-      "offset": 24,
+      "offset": 25,
       "updated_at_beijing": "2026-07-06 13:45",
       "available_images": 19
     },
     {
       "date": "2026-07-05",
       "date_label": "7月5日",
-      "offset": 25,
+      "offset": 26,
       "updated_at_beijing": "2026-07-05 19:18",
       "available_images": 19
     },
     {
       "date": "2026-07-04",
       "date_label": "7月4日",
-      "offset": 26,
+      "offset": 27,
       "updated_at_beijing": "2026-07-04 12:04",
       "available_images": 19
     },
     {
       "date": "2026-07-03",
       "date_label": "7月3日",
-      "offset": 27,
+      "offset": 28,
       "updated_at_beijing": "2026-07-03 15:02",
       "available_images": 19
     },
     {
       "date": "2026-07-02",
       "date_label": "7月2日",
-      "offset": 28,
+      "offset": 29,
       "updated_at_beijing": "2026-07-02 12:34",
       "available_images": 16
     },
     {
       "date": "2026-07-01",
       "date_label": "7月1日",
-      "offset": 29,
+      "offset": 30,
       "updated_at_beijing": "2026-07-01 17:05",
       "available_images": 19
-    },
-    {
-      "date": "2026-06-30",
-      "date_label": "6月30日",
-      "offset": 30,
-      "updated_at_beijing": "2026-06-30 12:36",
-      "available_images": 12
     }
   ]
 }
