@@ -1,121 +1,121 @@
 {
-  "date": "2026-07-06",
-  "date_label": "7月6日",
-  "updated_at_beijing": "2026-07-06 13:45",
+  "date": "2026-08-06",
+  "date_label": "8月6日",
+  "updated_at_beijing": "2026-08-06 08:08",
   "images": {
     "imd_monsoon_sw": {
       "title": "季风推进",
       "country": "印度",
       "file": "imd_monsoon_sw.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:08"
     },
     "imd_rainfall_full": {
       "title": "累积降雨距平差",
       "country": "印度",
       "file": "imd_rainfall_full.png",
-      "source_updated_at_beijing": "2026-07-06 13:45"
+      "source_updated_at_beijing": "2026-08-06 08:08"
     },
     "cpc_india_week1_anomaly": {
       "title": "未来一周降雨距平差",
       "country": "印度",
       "file": "cpc_india_week1_anomaly.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_india_weekly_temp_anom": {
       "title": "周度气温距平差",
       "country": "印度",
       "file": "cpc_india_weekly_temp_anom.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_seasia_30day_anom": {
       "title": "过去30天降雨距平差",
       "country": "泰国",
       "file": "cpc_seasia_30day_anom.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_seasia_week1_anomaly": {
       "title": "未来一周降水距平差",
       "country": "泰国",
       "file": "cpc_seasia_week1_anomaly.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "vci_thailand_nakhon_phanom_sugarcane": {
       "title": "VCI植被状况指数",
       "country": "泰国",
       "file": "vci_thailand_nakhon_phanom_sugarcane.png",
-      "source_updated_at_beijing": "2026-07-06 13:45"
+      "source_updated_at_beijing": "2026-08-06 08:08"
     },
     "cpc_thailand_weekly_temp_anom": {
       "title": "周度气温距平差",
       "country": "泰国",
       "file": "cpc_thailand_weekly_temp_anom.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_brazil_30day_anom": {
       "title": "过去30天降雨距平差",
       "country": "巴西",
       "file": "cpc_brazil_30day_anom.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_brazil_week1_anomaly": {
       "title": "未来一周降水距平差",
       "country": "巴西",
       "file": "cpc_brazil_week1_anomaly.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "vci_brazil_sao_paulo_sugarcane": {
       "title": "VCI植被状况指数",
       "country": "巴西",
       "file": "vci_brazil_sao_paulo_sugarcane.png",
-      "source_updated_at_beijing": "2026-07-06 13:45"
+      "source_updated_at_beijing": "2026-08-06 08:08"
     },
     "cpc_brazil_weekly_temp_anom": {
       "title": "周度气温距平差",
       "country": "巴西",
       "file": "cpc_brazil_weekly_temp_anom.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_china_30day_anom": {
       "title": "过去30天降雨距平差",
       "country": "中国",
       "file": "cpc_china_30day_anom.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_china_week1_anomaly": {
       "title": "未来一周降水距平差",
       "country": "中国",
       "file": "cpc_china_week1_anomaly.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "vci_china_guangxi_sugarcane": {
       "title": "VCI植被状况指数",
       "country": "中国",
       "file": "vci_china_guangxi_sugarcane.png",
-      "source_updated_at_beijing": "2026-07-06 13:45"
+      "source_updated_at_beijing": "2026-08-06 08:08"
     },
     "cpc_china_weekly_temp_anom": {
       "title": "周度气温距平差",
       "country": "中国",
       "file": "cpc_china_weekly_temp_anom.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_europe_30day_anom": {
       "title": "过去30天降雨距平差",
       "country": "欧洲",
       "file": "cpc_europe_30day_anom.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_europe_week1_anomaly": {
       "title": "未来一周降水距平差",
       "country": "欧洲",
       "file": "cpc_europe_week1_anomaly.gif",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     },
     "cpc_europe_weekly_temp_anom": {
       "title": "周度气温距平差",
       "country": "欧洲",
       "file": "cpc_europe_weekly_temp_anom.png",
-      "source_updated_at_beijing": "2026-07-06 13:44"
+      "source_updated_at_beijing": "2026-08-06 08:07"
     }
   }
 }
